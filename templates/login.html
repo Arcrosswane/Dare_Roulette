@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log In - Dare-Roulette</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-15px);
+            }
+        }
+
+        @keyframes gradient {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .float {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .gradient-animate {
+            background-size: 200% 200%;
+            animation: gradient 8s ease infinite;
+        }
+
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+
+<body class="bg-black text-white overflow-x-hidden">
+    <!-- Animated background -->
+    <div class="fixed inset-0 -z-10">
+        <div class="absolute inset-0 bg-gradient-to-br from-purple-950 via-black to-pink-950 gradient-animate"></div>
+        <div class="absolute top-20 left-0 w-64 h-64 lg:w-96 lg:h-96 bg-purple-500/20 rounded-full blur-3xl"></div>
+        <div
+            class="absolute bottom-20 right-0 w-72 h-72 lg:w-[32rem] lg:h-[32rem] bg-pink-500/20 rounded-full blur-3xl">
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 glassmorphism border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-4 lg:px-8 py-3 lg:py-4 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-2">
+                <span class="text-2xl lg:text-3xl">🎯</span>
+                <span
+                    class="text-xl lg:text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Dare-Roulette</span>
+            </a>
+            <a href="/signup" class="text-sm lg:text-base text-gray-400 hover:text-white transition">
+                Don’t have an account? <span class="text-purple-400 font-semibold">Sign up</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Login Form Section -->
+    <section class="min-h-screen flex items-center justify-center px-4 pt-20 pb-8">
+        <div class="w-full max-w-md">
+            <!-- Floating Icon -->
+            <div class="text-center mb-6 my-10 lg:mb-8 float">
+                <div class="text-6xl lg:text-7xl mb-3">🎯</div>
+            </div>
+
+            <!-- Login Card -->
+            <div class="glassmorphism rounded-3xl p-6 lg:p-8 border border-white/10 shadow-2xl">
+                <h1
+                    class="text-3xl lg:text-4xl font-bold text-center mb-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                    Welcome Back
+                </h1>
+                <p class="text-center text-sm lg:text-base text-gray-400 mb-6 lg:mb-8">
+                    Log in to continue your challenge journey
+                </p>
+                <!-- Login Form -->
+                <form action="/login" method="post" class="space-y-4 lg:space-y-5">
+                    <!-- Email -->
+                    <div>
+                        <label for="email" class="block text-xs lg:text-sm font-medium mb-2 text-gray-300">Email or
+                            Username</label>
+                        <input type="text" id="email" name="email" required placeholder="your@email.com"
+                            class="w-full px-4 py-3 lg:py-4 rounded-xl lg:rounded-2xl bg-white/5 border border-white/10 focus:border-purple-500 focus:outline-none transition text-sm lg:text-base placeholder-gray-500">
+                    </div>
+
+                    <!-- Password -->
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="password"
+                                class="block text-xs lg:text-sm font-medium text-gray-300">Password</label>
+                            <a href="/forgot"
+                                class="text-xs lg:text-sm text-purple-400 hover:text-purple-300 transition">
+                                Forgot password?
+                            </a>
+                        </div>
+                        <input type="password" id="password" name="password" required placeholder="Enter your password"
+                            class="w-full px-4 py-3 mb-5 lg:py-4 rounded-xl lg:rounded-2xl bg-white/5 border border-white/10 focus:border-purple-500 focus:outline-none transition text-sm lg:text-base placeholder-gray-500">
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit"
+                        class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl lg:rounded-2xl py-4 lg:py-5 font-bold text-base lg:text-lg transition-all duration-300 transform active:scale-95 hover:scale-105 shadow-xl shadow-purple-500/50">
+                        Log In 🎯
+                    </button>
+                </form>
+
+                <!-- Divider -->
+                <div class="my-6 lg:my-8">
+                    <div class="flex items-center gap-4">
+                        <div class="flex-1 h-px bg-white/10"></div>
+                        <span class="text-xs lg:text-sm text-gray-500">New to Dare-Roulette?</span>
+                        <div class="flex-1 h-px bg-white/10"></div>
+                    </div>
+                </div>
+
+                <!-- Sign Up Link -->
+                <a href="/signup"
+                    class="block w-full text-center glassmorphism border border-white/20 hover:border-purple-500/50 rounded-xl lg:rounded-2xl py-4 lg:py-5 font-semibold text-sm lg:text-base transition-all duration-300 transform active:scale-95 hover:scale-105">
+                    Create an Account
+                </a>
+            </div>
+
+            <!-- Stats -->
+            <div class="mt-6 lg:mt-8 glassmorphism rounded-2xl p-4 lg:p-5 border border-white/10">
+                <div class="flex items-center justify-center gap-6 text-xs lg:text-sm text-gray-400">
+                    <div class="flex items-center gap-2">
+                        <span>✓</span>
+                        <span>Secure Login</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span>🔒</span>
+                        <span>Encrypted</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span>⚡</span>
+                        <span>Fast Access</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</body>
+
+</html>
