@@ -10,6 +10,7 @@ app.config['SECRET_KEY'] = 'arcrosswane1212'
 db = SQLAlchemy(app)
 
 class User(db.Model):
+    __tablename__ = "users"   
     id = db.Column(db.Integer(), primary_key=True)
     userName = db.Column(db.String(100), unique=True)
     email = db.Column(db.String(100), unique=True)
@@ -41,7 +42,7 @@ class Dare(db.Model):
 
 class Video(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     dare_id = db.Column(db.Integer, db.ForeignKey("dare.id"), nullable=False)
     video_url = db.Column(db.String(500), nullable=False)
     likes = db.Column(db.Integer, default=0)
@@ -76,7 +77,7 @@ class Video(db.Model):
 class UserVideoActivity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     video_id = db.Column(db.Integer, db.ForeignKey("video.id"), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     watch_time = db.Column(db.Integer)
     like = db.Column(db.Boolean, default=False)
     watched = db.Column(db.Boolean, default=False)
@@ -343,3 +344,4 @@ if __name__ == "__main__":
         db.create_all()
 
     app.run(debug=True)
+
