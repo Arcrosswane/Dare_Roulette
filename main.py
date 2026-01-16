@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.sql import func
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:arcrosswane1212@db.oujqvivhvgmtcjbrvmea.supabase.co:5432/postgres'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://neondb_owner:npg_UsEkXiG68OIx@ep-square-wildflower-ahpyz2xf-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require'
 app.config['SECRET_KEY'] = 'arcrosswane1212'
 db = SQLAlchemy(app)
 
@@ -341,4 +341,5 @@ def increase_views():
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
+
     app.run(debug=True)
