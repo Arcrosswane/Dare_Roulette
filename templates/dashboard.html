@@ -227,6 +227,7 @@
                 </button>
                 <button onclick="viewSettings()"
                     class="w-full px-4 py-3 hover:bg-white/10 transition-all text-left flex items-center gap-3 text-sm">
+                    
                     <span>⚙️</span>
                     <span>Settings</span>
                 </button>
@@ -240,7 +241,7 @@
         </div>
     </aside>
 
-    <main class="lg:ml-64 pb-24 lg:pb-0">
+    <main class="pt-16 lg:pt-0 lg:ml-64 pb-24 lg:pb-0">
         <!-- Profile Modal -->
         <div id="profileModal" class="hidden fixed inset-0 z-[100] items-center justify-center p-4 animate-fadeIn">
             <!-- Backdrop -->
@@ -362,16 +363,16 @@
         </div>
 
         <!-- Feed View (YouTube Shorts Style) -->
-        <div id="feedView" class="h-screen snap-container overflow-y-scroll pt-16 lg:pt-0">
+        <div id="feedView" class="h-screen snap-container overflow-y-scroll">
             <div id="feedContainer"></div>
         </div>
 
         <!-- Dare View -->
         <div id="dareView"
             class="hidden min-h-screen overflow-y-auto bg-gradient-to-br from-purple-950 via-black to-pink-950">
-            <div class="max-w-2xl mx-auto p-6 flex flex-col items-center justify-center min-h-screen">
+            <div class="max-w-2xl mx-auto px-4 sm:px-6 py-6 flex flex-col items-center justify-center min-h-screen">
                 <h1
-                    class="text-4xl font-bold mb-12 text-center bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                    class="text-3xl sm:text-4xl font-bold mb-8 sm:mb-12 text-center bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                     🎯 Spin the Wheel
                 </h1>
 
@@ -407,13 +408,13 @@
         <!-- Upload View -->
         <div id="uploadView"
             class="hidden min-h-screen overflow-y-auto bg-gradient-to-br from-pink-950 via-black to-purple-950">
-            <div class="max-w-2xl mx-auto p-6">
+            <div class="max-w-2xl mx-auto px-4 sm:px-6 py-6">
                 <h1
-                    class="text-4xl font-bold mb-8 text-center bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
+                    class="text-3xl sm:text-4xl font-bold mb-6 sm:mb-8 text-center bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
                     📤 Upload Your Dare
                 </h1>
 
-                <div class="glassmorphism rounded-3xl p-8 mb-6 border border-white/10">
+                <div class="glassmorphism rounded-3xl p-5 sm:p-8 mb-6 border border-white/10">
                     <div class="mb-6">
                         <label class="block text-sm font-semibold mb-3 text-gray-300">Your Challenge</label>
                         <div
@@ -427,11 +428,11 @@
                     <div class="mb-6">
                         <label class="block text-sm font-semibold mb-3 text-gray-300">Upload Video</label>
                         <div id="uploadPlaceholder"
-                            class="relative border-2 border-dashed border-white/20 rounded-2xl p-12 text-center hover:border-purple-500/50 transition-all cursor-pointer bg-white/5">
+                            class="relative border-2 border-dashed border-white/20 rounded-2xl p-6 sm:p-8 md:p-12 text-center hover:border-purple-500/50 transition-all cursor-pointer bg-white/5">
                             <input type="file" id="videoInput" accept="video/*" onchange="handleVideoSelect(event)"
                                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                             <div class="text-6xl mb-4">📹</div>
-                            <p class="text-lg font-semibold mb-2">Click to upload video</p>
+                            <p class="text-base sm:text-lg font-semibold mb-2">Click to upload video</p>
                             <p class="text-sm text-gray-400">MP4, MOV, AVI up to 100MB</p>
                         </div>
 
@@ -446,7 +447,7 @@
                     </div>
 
                     <button id="uploadBtn" onclick="uploadDare()" disabled
-                        class="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-bold py-4 px-8 rounded-2xl text-xl transition-all transform hover:scale-105 active:scale-95 disabled:scale-100 shadow-lg">
+                        class="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-2xl text-lg sm:text-xl transition-all transform hover:scale-105 active:scale-95 disabled:scale-100 shadow-lg">
                         🚀 UPLOAD DARE
                     </button>
                 </div>
