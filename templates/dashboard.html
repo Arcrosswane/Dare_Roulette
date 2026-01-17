@@ -54,6 +54,15 @@
             box-shadow: 0 0 40px rgba(168, 85, 247, 0.5);
             overflow: hidden;
         }
+        
+        .wheel-lg {
+            width: min(200px, 50vw);
+            height: min(200px, 50vw);
+            border-radius: 25%;
+            position: relative;
+            box-shadow: 0 0 40px rgba(168, 85, 247, 0.5);
+            overflow: hidden;
+        }
 
         @media (min-width: 640px) {
             .wheel {
@@ -356,7 +365,7 @@
                     🎯 Spin the Wheel
                 </h1>
 
-                <div id="wheel" class="wheel bg-gradient-to-br from-purple-600 via-pink-500 to-orange-500 mb-8 sm:mb-12 flex items-center justify-center">
+                <div id="wheel" class="bg-gradient-to-br from-purple-600 via-pink-500 to-orange-500 mb-8 sm:mb-12 flex items-center justify-center wheel lg:wheel-lg">
                     <div class="text-center">
                         <div class="text-4xl sm:text-5xl md:text-6xl mb-2 sm:mb-4">🎡</div>
                         <p class="text-base sm:text-lg md:text-xl font-bold">Dare Wheel</p>
@@ -1029,6 +1038,7 @@
 </body>
 
 </html>
+
 
 
 
