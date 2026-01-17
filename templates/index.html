@@ -295,6 +295,15 @@
         function scrollToApp() {
             document.getElementById(’app-section’).scrollIntoView({ behavior: ’smooth’ });
         }
+document.addEventListener("DOMContentLoaded", async () => {
+    const { value } = await Capacitor.Plugins.Preferences.get({
+        key: 'userId'
+    });
+
+    if (value) {
+        window.location.href = "/dashboard";
+    }
+});
     </script>
 </body>
 </html>
