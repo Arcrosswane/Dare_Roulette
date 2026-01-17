@@ -876,8 +876,7 @@
             let views = "{{ user.views }}";
             let likes = "{{ user.likes }}";
             let dares_num = "{{ user.dares }}";
-            let dares_l = {{ user.dares_l | tojson
-        }};
+            let dares_l = {{ user.dares_l | tojson}};
         let user_id = {{ user.id }};
 
         viewUserProfile(user_id, myUsername, bio, dares_num, likes, views, dares_l);
@@ -1030,6 +1029,7 @@
 </body>
 
 </html>
+
 
 
 
