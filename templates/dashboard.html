@@ -435,7 +435,9 @@
     </main>
 
     <script>
-        const dares = {{dares_from_DB|tojson}};
+        // Replace the entire <script> section in your HTML with this:
+
+        const dares = {{ dares_from_DB | tojson }}
 
         let currentVideo = null;
         let feed = [];
@@ -445,25 +447,295 @@
         let isSpinning = false;
         let url = null;
         let userInteracted = false;
+        let watchTimers = {};
+        let watchedVideos = new Set();
+        let scrollObserver = null;
 
-        const CLOUD_NAME = "demo";
-        const UPLOAD_PRESET = "demo_preset";
+        const CLOUD_NAME = "dsfn0sc3w";
+        const UPLOAD_PRESET = "Dare-Roulette";
 
-        document.addEventListener("click", () => {
+        // Intersection Observer for video autoplay
+
+        // Mark any click as user interaction (only once)
+        document.addEventListener('click', () => {
             userInteracted = true;
         }, { once: true });
 
-        function showView(viewId) {
-            const views = ["feedView", "dareView", "uploadView"];
-            views.forEach(v => {
-                const el = document.getElementById(v);
-                if (el) el.classList.add("hidden");
+        // IntersectionObserver
+        const videoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const video = entry.target;
+
+                if (!userInteracted) return; // don’t autoplay until user interacts
+
+                if (entry.isIntersecting) {
+                    // Pause previous video
+                    if (currentVideo && currentVideo !== video) {
+                        currentVideo.pause();
+                        currentVideo.currentTime = 0;
+                    }
+
+                    currentVideo = video;
+
+                    // Play the new video
+                    video.muted = false; // unmute if you want
+                    video.play().catch(err => console.log('Play error:', err));
+                } else {
+                    // Pause video if not in view
+                    if (currentVideo === video) currentVideo.pause();
+                }
+            });
+        }, { threshold: 0.7 });
+
+        // Function to observe all new videos (call after appending from API)
+        function observeNewVideos() {
+            document.querySelectorAll('.short-video').forEach(video => {
+                if (!video.dataset.observed) {
+                    videoObserver.observe(video);
+                    video.dataset.observed = 'true';
+
+                    // click-to-toggle
+                    video.addEventListener('click', () => {
+                        userInteracted = true;
+                        if (video.paused) video.play();
+                        else video.pause();
+                    });
+                }
+            });
+        }
+
+        // Example: after fetching new videos via API
+        // fetch('/api/get-videos').then(...).then(() => {
+        //     observeNewVideos();
+        // });
+
+
+        // Intersection Observer for infinite scroll
+        function setupScrollObserver() {
+            if (scrollObserver) {
+                scrollObserver.disconnect();
+            }
+
+            scrollObserver = new IntersectionObserver(async (entries) => {
+                const lastEntry = entries[0];
+                if (lastEntry && lastEntry.isIntersecting && !isLoading) {
+                    console.log('🔄 Loading more videos...');
+                    await loadFeed();
+                }
+            }, { threshold: 0.5 });
+        }
+
+        function observeLastVideo() {
+            const videos = document.querySelectorAll('.video-item');
+            if (videos.length > 0) {
+                const lastVideo = videos[videos.length - 1];
+                if (scrollObserver) {
+                    scrollObserver.observe(lastVideo);
+                }
+            }
+        }
+
+        // Video watch tracking
+        function setupVideoTracking() {
+            const shortVideos = document.querySelectorAll('.short-video');
+
+            shortVideos.forEach(video => {
+                video.addEventListener('play', () => {
+                    watchTimers[video.id] = Date.now();
+                });
+
+                video.addEventListener('pause', () => {
+                    if (watchTimers[video.id] && !watchedVideos.has(video.id)) {
+                        const watchedSeconds = Math.floor((Date.now() - watchTimers[video.id]) / 1000);
+                        if (watchedSeconds >= 3) {
+                            onVideoWatched(video.id, watchedSeconds);
+                            watchedVideos.add(video.id);
+                        }
+                    }
+                });
+
+                video.addEventListener('ended', () => {
+                    if (watchTimers[video.id] && !watchedVideos.has(video.id)) {
+                        const watchedSeconds = Math.floor((Date.now() - watchTimers[video.id]) / 1000);
+                        onVideoWatched(video.id, watchedSeconds);
+                        watchedVideos.add(video.id);
+                    }
+                });
+            });
+        }
+
+        async function loadFeed() {
+            if (isLoading) return;
+            isLoading = true;
+
+            try {
+                const response = await fetch('/api/get-videos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        offset: feed.length,
+                        limit: 5
+                    })
+                });
+
+                const newVideos = await response.json();
+
+                if (Array.isArray(newVideos) && newVideos.length > 0) {
+                    feed = [...feed, ...newVideos];
+                    renderNewVideos(newVideos);
+
+                    // Setup observer for the new last video
+                    setTimeout(() => {
+                        observeLastVideo();
+                        observeNewVideos();
+                    }, 100);
+                } else {
+                    console.log('No new videos available');
+                }
+            } catch (err) {
+                console.error("Feed error:", err);
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        function renderNewVideos(videos) {
+            const container = document.getElementById('feedContainer');
+
+            videos.forEach((item) => {
+                if (!item.video || !item.user || !item.dare) return;
+
+                const videoId = `video-${item.video.id}`;
+                const clickAreaId = `click-${item.video.id}`;
+
+                const videoHTML = `
+            <div class="video-item h-screen snap-item relative flex items-center justify-center bg-gradient-to-br from-purple-950/50 via-black to-pink-950/50">
+                <div id="${clickAreaId}" class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 cursor-pointer"></div>
+
+                ${item.video.video_url ? `
+                    <video
+                        src="${item.video.video_url}"
+                        class="short-video absolute inset-0 w-full h-full object-contain bg-black"
+                        id="${videoId}"
+                        muted
+                        loop
+                        playsinline
+                        preload="metadata">
+                    </video>
+                ` : `
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="text-8xl mb-4">✓</div>
+                            <p class="text-2xl font-bold text-white/80">Challenge Completed</p>
+                        </div>
+                    </div>
+                `}
+
+                <div class="absolute bottom-20 lg:bottom-8 left-0 right-0 px-6 z-20 pointer-events-none">
+                    <div class="flex items-end gap-4">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-3 pointer-events-auto">
+                                <button class="hover:scale-105 transition-transform">
+                                    <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
+                                        ${item.user.userName[0].toUpperCase()}
+                                    </div>
+                                </button>
+                                <button onclick="viewUserProfile('${item.user.userName}')" class="text-left hover:opacity-80 transition-opacity">
+                                    <p class="font-bold text-lg">${item.user.userName}</p>
+                                    <p class="text-sm text-gray-300">${getTimeAgo(item.video.created_at)}</p>
+                                </button>
+                            </div>
+                            <p class="text-lg font-medium mb-2">🎯 ${item.dare.text}</p>
+                            <div class="flex items-center gap-4 text-sm text-gray-300">
+                                <span>👁️ ${formatNumber(item.video.views)} views</span>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col items-center gap-6 pb-2 pointer-events-auto">
+                            <button onclick="likePost(${item.video.id})" class="flex flex-col items-center gap-1 transform active:scale-110 transition-transform">
+                                <span id="likebtn-${item.video.id}" class="text-3xl">
+                                    ${item.video.liked ? '❤️' : '🩶'}
+                                </span>
+                                <span class="text-sm font-bold" id="likes-${item.video.id}">${formatNumber(item.video.likes)}</span>
+                            </button>
+                            <button class="flex flex-col items-center gap-1 transform active:scale-110 transition-transform">
+                                <span class="text-3xl">🔄</span>
+                                <span class="text-sm font-bold">Share</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+                container.insertAdjacentHTML('beforeend', videoHTML);
             });
 
-            const active = document.getElementById(`${viewId}View`);
-            if (active) active.classList.remove("hidden");
+            // Setup observers for new videos
+            videos.forEach((item) => {
+                const video = document.getElementById(`video-${item.video.id}`);
+                const clickArea = document.getElementById(`click-${item.video.id}`);
 
-            if (viewId !== "feed" && currentVideo) {
+                if (video && clickArea) {
+                    videoObserver.observe(video);
+
+                    // Add click-to-play/pause interaction
+                    clickArea.onclick = () => {
+                        userInteracted = true;
+                        if (video.paused) {
+                            video.muted = false;
+                            video.play();
+                        } else {
+                            video.pause();
+                        }
+                    };
+                }
+            });
+
+            setupVideoTracking();
+        }
+
+        function likePost(videoId) {
+            fetch('/api/like', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ post_id: videoId })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) return;
+
+                    document.getElementById(`likebtn-${videoId}`).textContent =
+                        data.liked ? '❤️' : '🩶';
+
+                    document.getElementById(`likes-${videoId}`).textContent =
+                        formatNumber(data.likes);
+                })
+                .catch(console.error);
+        }
+
+        function onVideoWatched(videoId, seconds) {
+            console.log(`👀 Video ${videoId} watched for ${seconds}s`);
+
+            fetch('/api/video-watched', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    video_id: videoId,
+                    watch_time: seconds
+                })
+            });
+        }
+
+        // Navigation & Views
+        function showView(viewId) {
+            const views = ['feedView', 'dareView', 'uploadView'];
+            views.forEach(v => {
+                document.getElementById(v).classList.add('hidden');
+            });
+            document.getElementById(viewId + 'View').classList.remove('hidden');
+
+            if (viewId !== 'feed' && currentVideo) {
                 currentVideo.pause();
             }
 
@@ -471,35 +743,33 @@
         }
 
         function updateNavUI(activeView) {
-            const buttons = ["feed", "dare", "upload"];
+            const buttons = ['feed', 'dare', 'upload'];
             buttons.forEach(b => {
                 const mobileBtn = document.getElementById(`${b}BtnMobile`);
                 const desktopBtn = document.getElementById(`${b}BtnDesktop`);
-                const isActive = b === activeView;
-
-                if (mobileBtn) {
-                    mobileBtn.classList.toggle("bg-purple-500/20", isActive);
-                    mobileBtn.classList.toggle("text-purple-400", isActive);
-                }
-                if (desktopBtn) {
-                    desktopBtn.classList.toggle("bg-white/10", isActive);
-                    desktopBtn.classList.toggle("text-purple-400", isActive);
+                if (b === activeView) {
+                    mobileBtn.classList.add('bg-purple-500/20', 'text-purple-400');
+                    desktopBtn.classList.add('bg-white/10', 'text-purple-400');
+                } else {
+                    mobileBtn.classList.remove('bg-purple-500/20', 'text-purple-400');
+                    desktopBtn.classList.remove('bg-white/10', 'text-purple-400');
                 }
             });
         }
 
+        // Spin Wheel Logic
         function spinWheel() {
             if (isSpinning) return;
 
             isSpinning = true;
-            const wheel = document.getElementById("wheel");
-            const dareText = document.getElementById("dareText");
-            const spinBtn = document.getElementById("spinBtn");
-            const acceptBtn = document.getElementById("acceptBtn");
+            const wheel = document.getElementById('wheel');
+            const dareText = document.getElementById('dareText');
+            const spinBtn = document.getElementById('spinBtn');
+            const acceptBtn = document.getElementById('acceptBtn');
 
-            wheel.classList.remove("spin-animation");
+            wheel.classList.remove('spin-animation');
             void wheel.offsetWidth;
-            wheel.classList.add("spin-animation");
+            wheel.classList.add('spin-animation');
 
             dareText.innerText = "Selecting a dare...";
             spinBtn.disabled = true;
@@ -512,28 +782,29 @@
                 isSpinning = false;
                 spinBtn.innerText = "🎡 SPIN AGAIN";
                 spinBtn.disabled = false;
-                acceptBtn.classList.remove("hidden");
+                acceptBtn.classList.remove('hidden');
             }, 3000);
         }
 
         function acceptDare() {
             acceptedDare = currentDare;
-            document.getElementById("uploadDareText").innerText = acceptedDare;
-            showView("upload");
+            document.getElementById('uploadDareText').innerText = acceptedDare;
+            showView('upload');
 
-            const toast = document.createElement("div");
-            toast.className = "fixed top-20 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full z-[200] animate-bounce text-sm sm:text-base";
-            toast.innerText = `✅ Dare Accepted!`;
+            const toast = document.createElement('div');
+            toast.className = "fixed top-20 left-1/2 -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full z-[200] animate-bounce";
+            toast.innerText = `Dare Accepted! ${acceptedDare}`;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
         }
 
+        // Upload Logic
         function handleVideoSelect(event) {
             const file = event.target.files[0];
-            if (file && file.type.startsWith("video/")) {
+            if (file && file.type.startsWith('video/')) {
                 const formData = new FormData();
                 formData.append("file", file);
-                formData.append("upload_preset", "Dare-Roulette");
+                formData.append("upload_preset", UPLOAD_PRESET);
 
                 fetch("https://api.cloudinary.com/v1_1/dsfn0sc3w/video/upload", {
                     method: "POST",
@@ -541,35 +812,31 @@
                 })
                     .then(res => res.json())
                     .then(data => {
+                        console.log("Uploaded video URL:", data.secure_url);
                         url = data.secure_url;
-                        const preview = document.getElementById("videoPreview");
-                        const placeholder = document.getElementById("uploadPlaceholder");
-                        const previewContainer = document.getElementById("videoPreviewContainer");
-                        const uploadBtn = document.getElementById("uploadBtn");
-
-                        preview.src = url;
-                        placeholder.classList.add("hidden");
-                        previewContainer.classList.remove("hidden");
-                        uploadBtn.disabled = false;
+                        document.getElementById('videoPreview').src = url;
+                        document.getElementById('uploadPlaceholder').classList.add('hidden');
+                        document.getElementById('videoPreviewContainer').classList.remove('hidden');
+                        document.getElementById('uploadBtn').disabled = false;
                     });
             }
         }
 
         async function uploadDare() {
             if (!acceptedDare) {
-                alert("Accept a dare first! 🎯");
+                alert('Accept a dare first! 🎯');
                 return;
             }
 
             if (!url) {
-                alert("Please select a video first! 📹");
+                alert('Please select a video first! 📹');
                 return;
             }
 
             try {
-                const response = await fetch("/api/upload-video", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                const response = await fetch('/api/upload-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         url: url,
                         dare_text: acceptedDare
@@ -578,60 +845,68 @@
 
                 await response.json();
 
-                document.getElementById("videoInput").value = "";
-                document.getElementById("uploadPlaceholder").classList.remove("hidden");
-                document.getElementById("videoPreviewContainer").classList.add("hidden");
-                document.getElementById("uploadBtn").disabled = true;
-                document.getElementById("dareText").textContent = "Spin the wheel to get your dare!";
-                document.getElementById("acceptBtn").classList.add("hidden");
-                document.getElementById("spinBtn").textContent = "🎡 SPIN THE WHEEL";
+                // Reset form
+                document.getElementById('videoInput').value = '';
+                document.getElementById('uploadPlaceholder').classList.remove('hidden');
+                document.getElementById('videoPreviewContainer').classList.add('hidden');
+                document.getElementById('uploadBtn').disabled = true;
+                document.getElementById('dareText').textContent = 'Spin the wheel to get your dare!';
+                document.getElementById('acceptBtn').classList.add('hidden');
+                document.getElementById('spinBtn').textContent = '🎡 SPIN THE WHEEL';
 
                 url = null;
                 acceptedDare = null;
 
-                showView("feed");
+                showView('feed');
             } catch (err) {
-                console.error("Upload error:", err);
-                alert("Failed to upload video. Please try again.");
+                console.error('Upload error:', err);
+                alert('Failed to upload video. Please try again.');
             }
         }
 
+        // Profile & Search functions (keeping your existing code)
         function toggleProfileMenu() {
-            const menu = document.getElementById("profileMenu");
-            if (menu) {
-                menu.classList.toggle("hidden");
-            }
+            const menu = document.getElementById('profileMenu');
+            menu.classList.toggle('hidden');
         }
 
         function viewProfile() {
-            viewUserProfile(1, "username", "bio", 0, 0, 0, []);
-            document.getElementById("profileModalTitle").innerText = "My Profile";
+            let myUsername = "{{ user.username }}";
+            let bio = "{{ user.bio }}";
+            let views = "{{ user.views }}";
+            let likes = "{{ user.likes }}";
+            let dares_num = "{{ user.dares }}";
+            let dares_l = {{ user.dares_l | tojson
+        }};
+        let user_id = {{ user.id }};
 
-            const menu = document.getElementById("profileMenu");
-            if (menu && !menu.classList.contains("hidden")) {
-                toggleProfileMenu();
-            }
+        viewUserProfile(user_id, myUsername, bio, dares_num, likes, views, dares_l);
+        document.getElementById('profileModalTitle').innerText = "My Profile";
+
+        if (!document.getElementById('profileMenu').classList.contains('hidden')) {
+            toggleProfileMenu();
         }
+}
 
-        function viewUserProfile(userId, username, bio, dares = 0, likes = 0, views = 0, daresL = []) {
-            document.getElementById("profileModalTitle").innerText = "User Info";
-            document.getElementById("modalProfileName").innerText = username;
-            document.getElementById("modalProfileUsername").innerText = bio;
+        function viewUserProfile(user_id, username, bio, dares = 0, likes = 0, views = 0, dares_l) {
+            document.getElementById('profileModalTitle').innerText = "User Info";
+            document.getElementById('modalProfileName').innerText = username;
+            document.getElementById('modalProfileUsername').innerText = bio;
 
-            const avatar = document.getElementById("modalProfileAvatar");
+            const avatar = document.getElementById('modalProfileAvatar');
             avatar.innerText = username[0].toUpperCase();
 
-            document.getElementById("modalProfileDares").innerText = dares;
-            document.getElementById("modalProfileLikes").innerText = likes;
-            document.getElementById("modalProfileViews").innerText = views;
-            document.getElementById("modalDaresTitle").innerText = `@${username}'s Challenges`;
+            document.getElementById('modalProfileDares').innerText = dares;
+            document.getElementById('modalProfileLikes').innerText = likes;
+            document.getElementById('modalProfileViews').innerText = views;
+            document.getElementById('modalDaresTitle').innerText = `@${username}'s Challenges`;
 
-            const list = document.getElementById("modalProfileDaresList");
+            const list = document.getElementById('modalProfileDaresList');
             list.innerHTML = "";
 
-            const dareData = (daresL || []).find(u => u.user_id === userId);
-            if (dareData && dareData.user_data) {
-                dareData.user_data.forEach(dare => {
+            const dare_data = dares_l.find(u => u.user_id === user_id);
+            if (dare_data && dare_data.user_data) {
+                dare_data.user_data.forEach(dare => {
                     list.innerHTML += `
                 <div class="relative group overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-white/10 aspect-video flex items-center justify-center hover:scale-105 transition-transform cursor-pointer">
                     <video src="${dare.vid.video_url}" class="w-full h-full object-cover"></video>
@@ -646,74 +921,70 @@
                 });
             }
 
-            const resultsMobile = document.getElementById("searchResultsMobile");
-            const resultsDesktop = document.getElementById("searchResultsDesktop");
-            [resultsMobile, resultsDesktop].forEach(r => {
-                if (r) r.classList.add("hidden");
-            });
+            [document.getElementById('searchResultsMobile'), document.getElementById('searchResultsDesktop')].forEach(r => r.classList.add('hidden'));
+            document.getElementById('userSearchMobile').value = '';
+            document.getElementById('userSearchDesktop').value = '';
 
-            const searchMobile = document.getElementById("userSearchMobile");
-            const searchDesktop = document.getElementById("userSearchDesktop");
-            if (searchMobile) searchMobile.value = "";
-            if (searchDesktop) searchDesktop.value = "";
-
-            const modal = document.getElementById("profileModal");
-            modal.classList.remove("hidden");
-            modal.classList.add("flex");
+            const modal = document.getElementById('profileModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
         }
 
         function closeProfileModal() {
-            const modal = document.getElementById("profileModal");
-            modal.classList.add("hidden");
-            modal.classList.remove("flex");
+            document.getElementById('profileModal').classList.add('hidden');
+            document.getElementById('profileModal').classList.remove('flex');
         }
 
         function searchUsers(query) {
-            const resultsMobile = document.getElementById("searchResultsMobile");
-            const resultsDesktop = document.getElementById("searchResultsDesktop");
+            const resultsMobile = document.getElementById('searchResultsMobile');
+            const resultsDesktop = document.getElementById('searchResultsDesktop');
 
             if (query.length < 2) {
-                [resultsMobile, resultsDesktop].forEach(res => {
-                    if (res) res.classList.add("hidden");
-                });
+                resultsMobile.classList.add('hidden');
+                resultsDesktop.classList.add('hidden');
                 return;
             }
 
-            const mockUsers = [
-                { id: 1, username: "testuser", bio: "Test bio", dares: 5, likes: 100, views: 500, dares_l: [] }
-            ];
-            
-            const filtered = mockUsers.filter(u =>
-                u.username.toLowerCase().includes(query.toLowerCase())
-            );
+            const mockUsers = {{ users | tojson
+        }};
+        const filtered = mockUsers.filter(u =>
+            u.username.toLowerCase().includes(query.toLowerCase())
+        );
 
-            const html = filtered
-                .map(u => `
-                <div onclick='viewUserProfile(${u.id}, "${u.username}", "${u.bio}", ${u.dares}, ${u.likes}, ${u.views}, ${JSON.stringify(u.dares_l)})' class="p-4 hover:bg-white/10 cursor-pointer active:bg-white/20">
-                    <div class="font-bold">@${u.username}</div>
-                    <div class="text-xs text-gray-400">${u.bio}</div>
-                </div>
-                `)
-                .join("");
+        const html = filtered.map(u => `
+        <div onclick='viewUserProfile(
+            ${u.id},
+            "${u.username}",
+            "${u.bio}",
+            "${u.dares}",
+            "${u.likes}",
+            "${u.views}",
+            ${JSON.stringify(u.dares_l)}
+        )' class="p-4 hover:bg-white/10 cursor-pointer">
+            <div class="font-bold">@${u.username}</div>
+            <div class="text-xs text-gray-400">${u.bio}</div>
+        </div>
+    `).join('');
 
-            [resultsMobile, resultsDesktop].forEach(res => {
-                if (!res) return;
-                res.innerHTML = html || '<p class="p-4 text-gray-500">No users found</p>';
-                res.classList.remove("hidden");
-            });
-        }
+        [resultsMobile, resultsDesktop].forEach(res => {
+            res.innerHTML = html || '<p class="p-4 text-gray-500">No users found</p>';
+            res.classList.remove('hidden');
+        });
+}
 
         function viewSettings() {
-            alert("Settings feature coming soon!");
+            alert('Settings feature coming soon!');
         }
 
         function logout() {
-            alert("Logout functionality - integrate with your backend");
+            fetch('/logout', { method: 'POST' })
+                .then(() => window.location.href = '/login');
         }
 
+        // Helpers
         function formatNumber(num) {
-            if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
-            if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
             return num;
         }
 
@@ -744,9 +1015,14 @@
             return `${years}y ago`;
         }
 
+        // Initialize
         window.onload = () => {
-            showView("feed");
-            document.addEventListener("click", () => {
+            setupScrollObserver();
+            loadFeed();
+            showView('feed');
+
+            // Unlock audio on first interaction
+            document.addEventListener('click', () => {
                 userInteracted = true;
             }, { once: true });
         };
@@ -754,6 +1030,7 @@
 </body>
 
 </html>
+
 
 
 
