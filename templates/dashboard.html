@@ -17,16 +17,6 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        .app-root {
-            transform-origin: top center;
-        }
-
-        @media (min-width: 768px) {
-            .app-root {
-                transform: scale(0.75);
-            }
-        }
-
         .snap-container {
             scroll-snap-type: y mandatory;
             -webkit-overflow-scrolling: touch;
@@ -131,7 +121,6 @@
 </head>
 
 <body class="bg-black text-white overflow-hidden h-screen">
-    <div class="app-root">
     <!-- Mobile Search Bar -->
     <div class="fixed top-0 left-0 right-0 bg-gradient-to-b from-black via-black/95 to-transparent z-40 lg:hidden">
         <div class="px-4 py-3 backdrop-blur-xl border-b border-white/10">
@@ -381,7 +370,7 @@
         <!-- Dare View -->
         <div id="dareView"
             class="hidden min-h-screen overflow-y-auto bg-gradient-to-br from-purple-950 via-black to-pink-950">
-            <div class="max-w-2xl px-4 sm:px-6 py-6 flex flex-col items-center justify-center min-h-screen">
+            <div class="max-w-2xl mx-6 px-4 sm:px-6 py-6 flex flex-col items-center justify-center min-h-screen">
                 <h1
                     class="text-3xl sm:text-4xl font-bold mb-8 sm:mb-12 text-center bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                     🎯 Spin the Wheel
@@ -1063,8 +1052,6 @@
             }, { once: true });
         };
     </script>
-    </div>
 </body>
 
 </html>
-
