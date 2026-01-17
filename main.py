@@ -5,7 +5,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.sql import func
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://neondb_owner:npg_UsEkXiG68OIx@ep-square-wildflower-ahpyz2xf-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://neondb_owner:npg_UsEkXiG68OIx@ep-square-wildflower-ahpyz2xf-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require&keepalives=1&keepalives_idle=30&keepalives_interval=10&keepalives_count=5'
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_pre_ping": True,
+    "pool_recycle": 300,
+}
 app.config['SECRET_KEY'] = 'arcrosswane1212'
 db = SQLAlchemy(app)
 
@@ -348,5 +352,6 @@ def init_db():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
