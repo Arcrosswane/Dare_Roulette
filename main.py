@@ -192,6 +192,7 @@ def login():
 def dashboard():
     id = session.get('id', None)
     if id != None:
+        dares_from_DB = []
         user = User.query.filter_by(id=id).first()
         users = []
         dares_l = []
@@ -217,8 +218,7 @@ def dashboard():
                     })
             
             dares_l.append(user_entry)
-
-            dares_from_DB = []
+            
             for dare in Dare.query.all():
                 dares_from_DB.append(dare.text)
             
@@ -352,6 +352,7 @@ def init_db():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
