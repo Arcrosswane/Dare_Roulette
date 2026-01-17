@@ -17,6 +17,16 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        .app-root {
+            transform-origin: top center;
+        }
+
+        @media (min-width: 768px) {
+            .app-root {
+                transform: scale(0.75);
+            }
+        }
+
         .snap-container {
             scroll-snap-type: y mandatory;
             -webkit-overflow-scrolling: touch;
@@ -121,6 +131,7 @@
 </head>
 
 <body class="bg-black text-white overflow-hidden h-screen">
+    <div class="app-root">
     <!-- Mobile Search Bar -->
     <div class="fixed top-0 left-0 right-0 bg-gradient-to-b from-black via-black/95 to-transparent z-40 lg:hidden">
         <div class="px-4 py-3 backdrop-blur-xl border-b border-white/10">
@@ -1052,6 +1063,7 @@
             }, { once: true });
         };
     </script>
+    </div>
 </body>
 
 </html>
