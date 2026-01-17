@@ -435,13 +435,7 @@
     </main>
 
     <script>
-        const dares = [
-            "Do 20 pushups",
-            "Dance for 30 seconds",
-            "Sing your favorite song",
-            "Do a silly walk",
-            "Tell a joke"
-        ];
+        const dares = {{ ‎dares_from_DB | tojson }}
 
         let currentVideo = null;
         let feed = [];
@@ -760,4 +754,5 @@
 </body>
 
 </html>
+
 
