@@ -344,7 +344,7 @@ def increase_views():
         return {'status': 'OK'}
 
 @app.route('/api/login', methods=['POST'])
-def increase_views():
+def login_2():
     if request.method == 'POST':
         temp = request.json
         email = temp.get('email').strip()
@@ -382,6 +382,7 @@ def init_db():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
