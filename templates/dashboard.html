@@ -538,7 +538,7 @@
             const file = event.target.files[0];
             if (file && file.type.startsWith("video/")) {
                 const formData = new FormData();
-                formData.append("file", videoFile);
+                formData.append("file", file);
                 formData.append("upload_preset", "Dare-Roulette");
 
                 fetch("https://api.cloudinary.com/v1_1/dsfn0sc3w/video/upload", {
@@ -760,3 +760,4 @@
 </body>
 
 </html>
+
