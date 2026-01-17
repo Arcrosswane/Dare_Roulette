@@ -115,6 +115,7 @@
 
                     <!-- Submit Button -->
                     <button type="submit"
+                        id="submit"
                         class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl lg:rounded-2xl py-4 lg:py-5 font-bold text-base lg:text-lg transition-all duration-300 transform active:scale-95 hover:scale-105 shadow-xl shadow-purple-500/50">
                         Log In 🎯
                     </button>
@@ -155,6 +156,32 @@
             </div>
         </div>
     </section>
+    <script>
+        async function saveLogin(userId) {
+            await Capacitor.Plugins.Preferences.set({
+                key: 'userId',
+                value: String(userId)
+            });
+        }
+        document.getElementById('form').addEventListener('submit', () => {
+            email = document.getElementById('email')
+            password = document.getElementById('password')
+            fetch('/api/login', {
+                method: 'POST',
+                body: {
+                    email: email,
+                    pass: pass
+                }
+            })
+            .then(res=>res.json)
+            .then((res)=>{
+                if (res.status == 'OK'){
+                    saveLogin(res.id)
+                }
+            })
+        })
+    </script>
 </body>
+
 
 </html>
