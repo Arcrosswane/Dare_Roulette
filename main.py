@@ -343,7 +343,37 @@ def increase_views():
         
         return {'status': 'OK'}
 
+@app.route('/api/login', methods=['POST'])
+def increase_views():
+    if request.method == 'POST':
+        temp = request.json
+        email = temp.get('email').strip()
+        password = temp.get('pass').strip()
+        username = None
 
+        if not ('@' in email and '.' in email):
+            username = email
+        
+        if email and password:
+            if username != None:
+                user = User.query.filter_by(userName=username).first()
+                if user and check_password_hash(user.password, password):
+                    return {
+                        'status': 'OK',
+                        'id': user.id
+                    }
+            else:
+                user = User.query.filter_by(email=email).first()
+                if user and check_password_hash(user.password, password):
+                    return {
+                        'status': 'OK',
+                        'id': user.id
+                    }
+            return {
+                'status': 'BAD',
+                'message': 'No user found!'
+            }
+            
 @app.route("/init-db")
 def init_db():
     db.create_all()
@@ -352,6 +382,7 @@ def init_db():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
