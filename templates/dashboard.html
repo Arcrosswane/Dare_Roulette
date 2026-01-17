@@ -1,3 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dare-Roulette - Challenge Yourself</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        body {
+            overscroll-behavior: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .snap-container {
+            scroll-snap-type: y mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .snap-item {
+            scroll-snap-align: start;
+        }
+
+        @keyframes spin-wheel {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(1440deg);
+            }
+        }
+
+        .spin-animation {
+            animation: spin-wheel 3s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+        }
+
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .wheel {
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+            position: relative;
+            box-shadow: 0 0 40px rgba(168, 85, 247, 0.5);
+            overflow: hidden;
+        }
+
+        .wheel-text {
+            position: absolute;
+            width: 100%;
+            height: 50%;
+            left: 50%;
+            transform-origin: bottom;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 20px;
+            font-size: 24px;
+        }
+
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounce-slow {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .animate-slideUp {
+            animation: slideUp 0.4s ease-out;
+        }
+
+        .animate-bounce-slow {
+            animation: bounce-slow 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+
+<body class="bg-black text-white overflow-hidden h-screen"> <!-- Mobile Search Bar -->
+    <div class="fixed top-0 left-0 right-0 bg-gradient-to-b from-black via-black/95 to-transparent z-40 lg:hidden">
+        <div class="px-4 py-3 backdrop-blur-xl border-b border-white/10">
+            <div class="relative"> <input type="text" id="userSearchMobile" placeholder="Search users..."
+                    class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 pl-10 text-sm focus:outline-none focus:border-purple-500/50 transition-all"
+                    onkeyup="searchUsers(this.value)" /> <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
+            </div>
+            <div id="searchResultsMobile"
+                class="hidden mt-2 glassmorphism rounded-xl border border-white/10 max-h-60 overflow-y-auto"></div>
+        </div>
+    </div> <!-- Mobile Bottom Navigation -->
+    <nav
+        class="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/95 to-transparent z-50 pb-safe lg:hidden">
+        <div class="flex justify-around items-center px-2 py-3 backdrop-blur-xl border-t border-white/10"> <button
+                onclick="showView('feed')" id="feedBtnMobile"
+                class="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all duration-300"> <span
+                    class="text-2xl">🏠</span> <span class="text-xs font-medium">Feed</span> </button> <button
+                onclick="showView('dare')" id="dareBtnMobile"
+                class="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all duration-300"> <span
+                    class="text-2xl">🎡</span> <span class="text-xs font-medium">Spin</span> </button> <button
+                onclick="showView('upload')" id="uploadBtnMobile"
+                class="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all duration-300"> <span
+                    class="text-2xl">📤</span> <span class="text-xs font-medium">Upload</span> </button> <button
+                onclick="viewProfile()" id="profileBtnMobile"
+                class="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all duration-300">
+                <div
+                    class="w-7 h-7 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center font-bold text-sm shadow-lg">
+                    {{user.avatar}} </div> <span class="text-xs font-medium">Profile</span>
+            </button> </div>
+    </nav> <!-- Desktop Sidebar -->
+    <aside
+        class="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-purple-900/20 to-pink-900/20 border-r border-white/10 backdrop-blur-xl flex-col p-6 z-50">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                🎯 Dare-Roulette </h1>
+        </div> <!-- Search Bar -->
+        <div class="mb-6">
+            <div class="relative"> <input type="text" id="userSearchDesktop" placeholder="Search users..."
+                    class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 pl-10 text-sm focus:outline-none focus:border-purple-500/50 transition-all"
+                    onkeyup="searchUsers(this.value)" /> <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
+            </div>
+            <div id="searchResultsDesktop"
+                class="hidden mt-2 glassmorphism rounded-xl border border-white/10 max-h-60 overflow-y-auto"></div>
+        </div>
+        <nav class="flex flex-col gap-3 flex-1"> <button onclick="showView('feed')" id="feedBtnDesktop"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-all duration-300">
+                <span class="text-2xl">🏠</span> <span class="font-medium">Feed</span> </button> <button
+                onclick="showView('dare')" id="dareBtnDesktop"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-all duration-300">
+                <span class="text-2xl">🎡</span> <span class="font-medium">Spin Wheel</span> </button> <button
+                onclick="showView('upload')" id="uploadBtnDesktop"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-all duration-300">
+                <span class="text-2xl">📤</span> <span class="font-medium">Upload</span> </button> </nav>
+        <!-- User Profile -->
+        <div class="mt-auto pt-4 border-t border-white/10"> <button onclick="toggleProfileMenu()"
+                class="w-full glassmorphism rounded-xl p-3 hover:bg-white/10 transition-all duration-300 flex items-center gap-3">
+                <div
+                    class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
+                    {{user.avatar}} </div>
+                <div class="flex-1 text-left">
+                    <p class="font-semibold text-sm">{{user.username}}</p>
+                    <p class="text-xs text-gray-400">{{user.short_bio}}...</p>
+                </div> <span class="text-gray-400">⋮</span>
+            </button> <!-- Profile Dropdown Menu -->
+            <div id="profileMenu" class="hidden mt-2 glassmorphism rounded-xl border border-white/10 overflow-hidden">
+                <button onclick="viewProfile()"
+                    class="w-full px-4 py-3 hover:bg-white/10 transition-all text-left flex items-center gap-3 text-sm">
+                    <span>👤</span> <span>View Profile</span> </button> <button onclick="viewSettings()"
+                    class="w-full px-4 py-3 hover:bg-white/10 transition-all text-left flex items-center gap-3 text-sm">
+                    <span>⚙️</span> <span>Settings</span> </button>
+                <div class="border-t border-white/10"></div> <button onclick="logout()"
+                    class="w-full px-4 py-3 hover:bg-red-500/20 transition-all text-left flex items-center gap-3 text-sm text-red-400">
+                    <span>🚪</span> <span>Logout</span> </button>
+            </div>
+        </div>
 <script>
     const dares = {{ dares_from_DB | tojson }};
 
@@ -622,3 +819,6 @@
         );
     };
 </script>
+</aside>
+</body>
+</html>
