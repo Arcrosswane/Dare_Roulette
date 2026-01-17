@@ -1,643 +1,167 @@
-<!DOCTYPE html>
-<html lang="en">
+<script>
+    const dares = {{ dares_from_DB | tojson }};
 
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dare-Roulette - Challenge Yourself</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        * {
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-        }
+    let currentVideo = null;
+    let feed = [];
+    let isLoading = false;
+    let currentDare = null;
+    let acceptedDare = null;
+    let isSpinning = false;
+    let url = null;
+    let userInteracted = false;
+    let watchTimers = {};
+    let watchedVideos = new Set();
+    let scrollObserver = null;
 
-        body {
-            overscroll-behavior: none;
-            -webkit-tap-highlight-color: transparent;
-        }
+    const CLOUD_NAME = "dsfn0sc3w";
+    const UPLOAD_PRESET = "Dare-Roulette";
 
-        .snap-container {
-            scroll-snap-type: y mandatory;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .snap-item {
-            scroll-snap-align: start;
-        }
-
-        @keyframes spin-wheel {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(1440deg);
-            }
-        }
-
-        .spin-animation {
-            animation: spin-wheel 3s cubic-bezier(0.17, 0.67, 0.12, 0.99);
-        }
-
-        .glassmorphism {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-
-        .wheel {
-            width: 320px;
-            height: 320px;
-            border-radius: 50%;
-            position: relative;
-            box-shadow: 0 0 40px rgba(168, 85, 247, 0.5);
-            overflow: hidden;
-        }
-
-        .wheel-text {
-            position: absolute;
-            width: 100%;
-            height: 50%;
-            left: 50%;
-            transform-origin: bottom;
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-            padding-top: 20px;
-            font-size: 24px;
-        }
-
-        ::-webkit-scrollbar {
-            display: none;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes bounce-slow {
-
-            0%,
-            100% {
-                transform: translateY(0);
-            }
-
-            50% {
-                transform: translateY(-10px);
-            }
-        }
-
-        .animate-fadeIn {
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        .animate-slideUp {
-            animation: slideUp 0.4s ease-out;
-        }
-
-        .animate-bounce-slow {
-            animation: bounce-slow 3s ease-in-out infinite;
-        }
-    </style>
-</head>
-
-<body class="bg-black text-white overflow-hidden h-screen">
-    <!-- Mobile Search Bar -->
-    <div class="fixed top-0 left-0 right-0 bg-gradient-to-b from-black via-black/95 to-transparent z-40 lg:hidden">
-        <div class="px-4 py-3 backdrop-blur-xl border-b border-white/10">
-            <div class="relative">
-                <input type="text" id="userSearchMobile" placeholder="Search users..."
-                    class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 pl-10 text-sm focus:outline-none focus:border-purple-500/50 transition-all"
-                    onkeyup="searchUsers(this.value)" />
-                <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
-            </div>
-            <div id="searchResultsMobile"
-                class="hidden mt-2 glassmorphism rounded-xl border border-white/10 max-h-60 overflow-y-auto"></div>
-        </div>
-    </div>
-
-    <!-- Mobile Bottom Navigation -->
-    <nav
-        class="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/95 to-transparent z-50 pb-safe lg:hidden">
-        <div class="flex justify-around items-center px-2 py-3 backdrop-blur-xl border-t border-white/10">
-            <button onclick="showView('feed')" id="feedBtnMobile"
-                class="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all duration-300">
-                <span class="text-2xl">🏠</span>
-                <span class="text-xs font-medium">Feed</span>
-            </button>
-            <button onclick="showView('dare')" id="dareBtnMobile"
-                class="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all duration-300">
-                <span class="text-2xl">🎡</span>
-                <span class="text-xs font-medium">Spin</span>
-            </button>
-            <button onclick="showView('upload')" id="uploadBtnMobile"
-                class="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all duration-300">
-                <span class="text-2xl">📤</span>
-                <span class="text-xs font-medium">Upload</span>
-            </button>
-            <button onclick="viewProfile()" id="profileBtnMobile"
-                class="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all duration-300">
-                <div class="w-7 h-7 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center font-bold text-sm shadow-lg">
-                    {{user.avatar}}
-                </div>
-                <span class="text-xs font-medium">Profile</span>
-            </button>
-        </div>
-    </nav>
-
-    <!-- Desktop Sidebar -->
-    <aside
-        class="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-purple-900/20 to-pink-900/20 border-r border-white/10 backdrop-blur-xl flex-col p-6 z-50">
-        <div class="mb-8">
-            <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                🎯 Dare-Roulette
-            </h1>
-        </div>
-
-        <!-- Search Bar -->
-        <div class="mb-6">
-            <div class="relative">
-                <input type="text" id="userSearchDesktop" placeholder="Search users..."
-                    class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 pl-10 text-sm focus:outline-none focus:border-purple-500/50 transition-all"
-                    onkeyup="searchUsers(this.value)" />
-                <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
-            </div>
-            <div id="searchResultsDesktop"
-                class="hidden mt-2 glassmorphism rounded-xl border border-white/10 max-h-60 overflow-y-auto"></div>
-        </div>
-
-        <nav class="flex flex-col gap-3 flex-1">
-            <button onclick="showView('feed')" id="feedBtnDesktop"
-                class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-all duration-300">
-                <span class="text-2xl">🏠</span>
-                <span class="font-medium">Feed</span>
-            </button>
-            <button onclick="showView('dare')" id="dareBtnDesktop"
-                class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-all duration-300">
-                <span class="text-2xl">🎡</span>
-                <span class="font-medium">Spin Wheel</span>
-            </button>
-            <button onclick="showView('upload')" id="uploadBtnDesktop"
-                class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-all duration-300">
-                <span class="text-2xl">📤</span>
-                <span class="font-medium">Upload</span>
-            </button>
-        </nav>
-
-        <!-- User Profile -->
-        <div class="mt-auto pt-4 border-t border-white/10">
-            <button onclick="toggleProfileMenu()"
-                class="w-full glassmorphism rounded-xl p-3 hover:bg-white/10 transition-all duration-300 flex items-center gap-3">
-                <div
-                    class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
-                    {{user.avatar}}
-                </div>
-                <div class="flex-1 text-left">
-                    <p class="font-semibold text-sm">{{user.username}}</p>
-                    <p class="text-xs text-gray-400">{{user.short_bio}}...</p>
-                </div>
-                <span class="text-gray-400">⋮</span>
-            </button>
-
-            <!-- Profile Dropdown Menu -->
-            <div id="profileMenu" class="hidden mt-2 glassmorphism rounded-xl border border-white/10 overflow-hidden">
-                <button onclick="viewProfile()"
-                    class="w-full px-4 py-3 hover:bg-white/10 transition-all text-left flex items-center gap-3 text-sm">
-                    <span>👤</span>
-                    <span>View Profile</span>
-                </button>
-                <button onclick="viewSettings()"
-                    class="w-full px-4 py-3 hover:bg-white/10 transition-all text-left flex items-center gap-3 text-sm">
-                    
-                    <span>⚙️</span>
-                    <span>Settings</span>
-                </button>
-                <div class="border-t border-white/10"></div>
-                <button onclick="logout()"
-                    class="w-full px-4 py-3 hover:bg-red-500/20 transition-all text-left flex items-center gap-3 text-sm text-red-400">
-                    <span>🚪</span>
-                    <span>Logout</span>
-                </button>
-            </div>
-        </div>
-    </aside>
-
-    <main class="pt-16 lg:pt-0 lg:ml-64 pb-24 lg:pb-0">
-        <!-- Profile Modal -->
-        <div id="profileModal" class="hidden fixed inset-0 z-[100] items-center justify-center p-4 animate-fadeIn">
-            <!-- Backdrop -->
-            <div onclick="closeProfileModal()" class="absolute inset-0 bg-black/80 backdrop-blur-md"></div>
-
-            <!-- Modal Content -->
-            <div
-                class="relative max-w-4xl w-full max-h-[90vh] overflow-y-auto bg-gradient-to-br from-purple-950/95 via-black/95 to-pink-950/95 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl animate-slideUp">
-                <!-- Header -->
-                <div
-                    class="sticky top-0 z-10 bg-black/50 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between">
-                    <h2 id="profileModalTitle"
-                        class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                        Profile
-                    </h2>
-                    <button onclick="closeProfileModal()"
-                        class="w-10 h-10 rounded-full hover:bg-white/10 transition-all flex items-center justify-center text-2xl">
-                        ✕
-                    </button>
-                </div>
-
-                <div class="p-6">
-                    <!-- Profile Card -->
-                    <div class="glassmorphism rounded-3xl p-8 mb-6 border border-white/10">
-                        <div class="flex flex-col items-center text-center mb-6">
-                            <div id="modalProfileAvatar"
-                                class="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center font-bold text-4xl shadow-xl mb-4 animate-bounce-slow">
-                                Y
-                            </div>
-                            <h3 id="modalProfileName" class="text-2xl font-bold mb-1">
-                                hello
-                            </h3>
-                            <p id="modalProfileUsername" class="text-gray-400 mb-2">
-                                hello
-                            </p>
-                            <div
-                                class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full border border-purple-500/30 mt-2">
-                                <span class="text-yellow-400">⭐</span>
-                                <span class="text-sm font-semibold">Active Member</span>
-                            </div>
-
-                            <!-- Stats -->
-                            <div class="grid grid-cols-3 gap-6 w-full max-w-md mt-8">
-                                <div class="text-center transform hover:scale-110 transition-transform">
-                                    <div
-                                        class="w-16 h-16 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-600/20 border border-purple-500/30 flex items-center justify-center">
-                                        <p class="text-2xl font-bold text-purple-400" id="modalProfileDares">
-                                            0
-                                        </p>
-                                    </div>
-                                    <p class="text-sm text-gray-400 font-medium">Dares</p>
-                                </div>
-                                <div class="text-center transform hover:scale-110 transition-transform">
-                                    <div
-                                        class="w-16 h-16 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-pink-500/20 to-pink-600/20 border border-pink-500/30 flex items-center justify-center">
-                                        <p class="text-2xl font-bold text-pink-400" id="modalProfileLikes">
-                                            0
-                                        </p>
-                                    </div>
-                                    <p class="text-sm text-gray-400 font-medium">Likes</p>
-                                </div>
-                                <div class="text-center transform hover:scale-110 transition-transform">
-                                    <div
-                                        class="w-16 h-16 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-green-500/20 to-green-600/20 border border-green-500/30 flex items-center justify-center">
-                                        <p class="text-2xl font-bold text-green-400" id="modalProfileViews">
-                                            0
-                                        </p>
-                                    </div>
-                                    <p class="text-sm text-gray-400 font-medium">Views</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Achievements -->
-                    <div class="glassmorphism rounded-3xl p-6 mb-6 border border-white/10">
-                        <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
-                            <span>🏆</span>
-                            <span>Achievements</span>
-                        </h3>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div
-                                class="text-center p-4 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-2xl border border-yellow-500/20 transform hover:scale-105 transition-transform">
-                                <div class="text-4xl mb-2">🎯</div>
-                                <p class="text-sm font-semibold">First Dare</p>
-                                <p class="text-xs text-gray-400 mt-1">Unlocked</p>
-                            </div>
-                            <div class="text-center p-4 bg-white/5 rounded-2xl border border-white/10 opacity-50">
-                                <div class="text-4xl mb-2">🔥</div>
-                                <p class="text-sm font-semibold">10 Streak</p>
-                                <p class="text-xs text-gray-400 mt-1">Locked</p>
-                            </div>
-                            <div class="text-center p-4 bg-white/5 rounded-2xl border border-white/10 opacity-50">
-                                <div class="text-4xl mb-2">⭐</div>
-                                <p class="text-sm font-semibold">1K Likes</p>
-                                <p class="text-xs text-gray-400 mt-1">Locked</p>
-                            </div>
-                            <div class="text-center p-4 bg-white/5 rounded-2xl border border-white/10 opacity-50">
-                                <div class="text-4xl mb-2">👑</div>
-                                <p class="text-sm font-semibold">Top Creator</p>
-                                <p class="text-xs text-gray-400 mt-1">Locked</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Your Dares -->
-                    <div class="glassmorphism rounded-3xl p-6 border border-white/10">
-                        <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
-                            <span>🎬</span>
-                            <span id="modalDaresTitle">Your Dares</span>
-                        </h3>
-
-                        <div id="modalProfileDaresList" class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            <!-- Inserted by JS -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Feed View (YouTube Shorts Style) -->
-        <div id="feedView" class="h-screen snap-container overflow-y-scroll">
-            <div id="feedContainer"></div>
-        </div>
-
-        <!-- Dare View -->
-        <div id="dareView"
-            class="hidden min-h-screen overflow-y-auto bg-gradient-to-br from-purple-950 via-black to-pink-950">
-            <div class="max-w-2xl mx-6 px-4 sm:px-6 py-6 flex flex-col items-center justify-center min-h-screen">
-                <h1
-                    class="text-3xl sm:text-4xl font-bold mb-8 sm:mb-12 text-center bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                    🎯 Spin the Wheel
-                </h1>
-
-                <div id="wheel"
-                    class="wheel bg-gradient-to-br from-purple-600 via-pink-500 to-orange-500 mb-12 flex items-center justify-center">
-                    <div class="text-center">
-                        <div class="text-6xl mb-4">🎡</div>
-                        <p class="text-xl font-bold">Dare Wheel</p>
-                    </div>
-                </div>
-
-                <div class="w-full max-w-md space-y-6">
-                    <div
-                        class="glassmorphism rounded-3xl p-6 border border-white/10 min-h-[120px] flex items-center justify-center">
-                        <p id="dareText" class="text-xl text-center font-semibold">
-                            Spin the wheel to get your dare!
-                        </p>
-                    </div>
-
-                    <button id="spinBtn" onclick="spinWheel()"
-                        class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-4 px-8 rounded-2xl text-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg">
-                        🎡 SPIN THE WHEEL
-                    </button>
-
-                    <button id="acceptBtn" onclick="acceptDare()"
-                        class="hidden w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold py-4 px-8 rounded-2xl text-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg">
-                        ✅ ACCEPT DARE
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Upload View -->
-        <div id="uploadView"
-            class="hidden min-h-screen overflow-y-auto bg-gradient-to-br from-pink-950 via-black to-purple-950">
-            <div class="max-w-2xl mx-auto px-4 sm:px-6 py-6">
-                <h1
-                    class="text-3xl sm:text-4xl font-bold mb-6 sm:mb-8 text-center bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
-                    📤 Upload Your Dare
-                </h1>
-
-                <div class="glassmorphism rounded-3xl p-5 sm:p-8 mb-6 border border-white/10">
-                    <div class="mb-6">
-                        <label class="block text-sm font-semibold mb-3 text-gray-300">Your Challenge</label>
-                        <div
-                            class="bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-2xl p-4 border border-purple-500/30">
-                            <p id="uploadDareText" class="text-lg font-semibold text-center">
-                                Accept a dare first!
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="mb-6">
-                        <label class="block text-sm font-semibold mb-3 text-gray-300">Upload Video</label>
-                        <div id="uploadPlaceholder"
-                            class="relative border-2 border-dashed border-white/20 rounded-2xl p-6 sm:p-8 md:p-12 text-center hover:border-purple-500/50 transition-all cursor-pointer bg-white/5">
-                            <input type="file" id="videoInput" accept="video/*" onchange="handleVideoSelect(event)"
-                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                            <div class="text-6xl mb-4">📹</div>
-                            <p class="text-base sm:text-lg font-semibold mb-2">Click to upload video</p>
-                            <p class="text-sm text-gray-400">MP4, MOV, AVI up to 100MB</p>
-                        </div>
-
-                        <div id="videoPreviewContainer" class="hidden relative rounded-2xl overflow-hidden bg-black">
-                            <video id="videoPreview" class="w-full aspect-video" controls></video>
-                            <button
-                                onclick="document.getElementById('videoInput').value=''; document.getElementById('uploadPlaceholder').classList.remove('hidden'); document.getElementById('videoPreviewContainer').classList.add('hidden'); url=null;"
-                                class="absolute top-4 right-4 bg-red-500 hover:bg-red-600 text-white rounded-full w-10 h-10 flex items-center justify-center transition-all">
-                                ✕
-                            </button>
-                        </div>
-                    </div>
-
-                    <button id="uploadBtn" onclick="uploadDare()" disabled
-                        class="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-2xl text-lg sm:text-xl transition-all transform hover:scale-105 active:scale-95 disabled:scale-100 shadow-lg">
-                        🚀 UPLOAD DARE
-                    </button>
-                </div>
-
-                <div class="text-center text-sm text-gray-400">
-                    <p>📌 Make sure your video shows you completing the dare!</p>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <script>
-        // Replace the entire <script> section in your HTML with this:
-
-        const dares = {{ dares_from_DB | tojson }}
-
-        let currentVideo = null;
-        let feed = [];
-        let isLoading = false;
-        let currentDare = null;
-        let acceptedDare = null;
-        let isSpinning = false;
-        let url = null;
-        let userInteracted = false;
-        let watchTimers = {};
-        let watchedVideos = new Set();
-        let scrollObserver = null;
-
-        const CLOUD_NAME = "dsfn0sc3w";
-        const UPLOAD_PRESET = "Dare-Roulette";
-
-        // Intersection Observer for video autoplay
-
-        // Mark any click as user interaction (only once)
-        document.addEventListener('click', () => {
+    document.addEventListener(
+        "click",
+        () => {
             userInteracted = true;
-        }, { once: true });
+        },
+        { once: true }
+    );
 
-        // IntersectionObserver
-        const videoObserver = new IntersectionObserver((entries) => {
+    const videoObserver = new IntersectionObserver(
+        entries => {
             entries.forEach(entry => {
                 const video = entry.target;
 
-                if (!userInteracted) return; // don’t autoplay until user interacts
+                if (!userInteracted) return;
 
                 if (entry.isIntersecting) {
-                    // Pause previous video
                     if (currentVideo && currentVideo !== video) {
                         currentVideo.pause();
                         currentVideo.currentTime = 0;
                     }
 
                     currentVideo = video;
-
-                    // Play the new video
-                    video.muted = false; // unmute if you want
-                    video.play().catch(err => console.log('Play error:', err));
+                    video.muted = false;
+                    video.play().catch(err => console.log("Play error:", err));
                 } else {
-                    // Pause video if not in view
-                    if (currentVideo === video) currentVideo.pause();
+                    if (currentVideo === video) {
+                        currentVideo.pause();
+                    }
                 }
             });
-        }, { threshold: 0.7 });
+        },
+        { threshold: 0.7 }
+    );
 
-        // Function to observe all new videos (call after appending from API)
-        function observeNewVideos() {
-            document.querySelectorAll('.short-video').forEach(video => {
-                if (!video.dataset.observed) {
-                    videoObserver.observe(video);
-                    video.dataset.observed = 'true';
+    function observeNewVideos() {
+        document.querySelectorAll(".short-video").forEach(video => {
+            if (!video.dataset.observed) {
+                videoObserver.observe(video);
+                video.dataset.observed = "true";
 
-                    // click-to-toggle
-                    video.addEventListener('click', () => {
-                        userInteracted = true;
-                        if (video.paused) video.play();
-                        else video.pause();
-                    });
-                }
-            });
+                video.addEventListener("click", () => {
+                    userInteracted = true;
+                    if (video.paused) video.play();
+                    else video.pause();
+                });
+            }
+        });
+    }
+
+    function setupScrollObserver() {
+        if (scrollObserver) {
+            scrollObserver.disconnect();
         }
 
-        // Example: after fetching new videos via API
-        // fetch('/api/get-videos').then(...).then(() => {
-        //     observeNewVideos();
-        // });
-
-
-        // Intersection Observer for infinite scroll
-        function setupScrollObserver() {
-            if (scrollObserver) {
-                scrollObserver.disconnect();
-            }
-
-            scrollObserver = new IntersectionObserver(async (entries) => {
+        scrollObserver = new IntersectionObserver(
+            async entries => {
                 const lastEntry = entries[0];
                 if (lastEntry && lastEntry.isIntersecting && !isLoading) {
-                    console.log('🔄 Loading more videos...');
                     await loadFeed();
                 }
-            }, { threshold: 0.5 });
+            },
+            { threshold: 0.5 }
+        );
+    }
+
+    function observeLastVideo() {
+        const videos = document.querySelectorAll(".video-item");
+        if (videos.length > 0 && scrollObserver) {
+            const lastVideo = videos[videos.length - 1];
+            scrollObserver.observe(lastVideo);
         }
+    }
 
-        function observeLastVideo() {
-            const videos = document.querySelectorAll('.video-item');
-            if (videos.length > 0) {
-                const lastVideo = videos[videos.length - 1];
-                if (scrollObserver) {
-                    scrollObserver.observe(lastVideo);
-                }
-            }
-        }
+    function setupVideoTracking() {
+        const shortVideos = document.querySelectorAll(".short-video");
 
-        // Video watch tracking
-        function setupVideoTracking() {
-            const shortVideos = document.querySelectorAll('.short-video');
+        shortVideos.forEach(video => {
+            video.addEventListener("play", () => {
+                watchTimers[video.id] = Date.now();
+            });
 
-            shortVideos.forEach(video => {
-                video.addEventListener('play', () => {
-                    watchTimers[video.id] = Date.now();
-                });
-
-                video.addEventListener('pause', () => {
-                    if (watchTimers[video.id] && !watchedVideos.has(video.id)) {
-                        const watchedSeconds = Math.floor((Date.now() - watchTimers[video.id]) / 1000);
-                        if (watchedSeconds >= 3) {
-                            onVideoWatched(video.id, watchedSeconds);
-                            watchedVideos.add(video.id);
-                        }
-                    }
-                });
-
-                video.addEventListener('ended', () => {
-                    if (watchTimers[video.id] && !watchedVideos.has(video.id)) {
-                        const watchedSeconds = Math.floor((Date.now() - watchTimers[video.id]) / 1000);
+            const handleWatchEnd = () => {
+                if (watchTimers[video.id] && !watchedVideos.has(video.id)) {
+                    const watchedSeconds = Math.floor(
+                        (Date.now() - watchTimers[video.id]) / 1000
+                    );
+                    if (watchedSeconds >= 3) {
                         onVideoWatched(video.id, watchedSeconds);
                         watchedVideos.add(video.id);
                     }
-                });
-            });
-        }
-
-        async function loadFeed() {
-            if (isLoading) return;
-            isLoading = true;
-
-            try {
-                const response = await fetch('/api/get-videos', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        offset: feed.length,
-                        limit: 5
-                    })
-                });
-
-                const newVideos = await response.json();
-
-                if (Array.isArray(newVideos) && newVideos.length > 0) {
-                    feed = [...feed, ...newVideos];
-                    renderNewVideos(newVideos);
-
-                    // Setup observer for the new last video
-                    setTimeout(() => {
-                        observeLastVideo();
-                        observeNewVideos();
-                    }, 100);
-                } else {
-                    console.log('No new videos available');
                 }
-            } catch (err) {
-                console.error("Feed error:", err);
-            } finally {
-                isLoading = false;
+            };
+
+            video.addEventListener("pause", handleWatchEnd);
+            video.addEventListener("ended", handleWatchEnd);
+        });
+    }
+
+    async function loadFeed() {
+        if (isLoading) return;
+        isLoading = true;
+
+        try {
+            const response = await fetch("/api/get-videos", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    offset: feed.length,
+                    limit: 5
+                })
+            });
+
+            const newVideos = await response.json();
+
+            if (Array.isArray(newVideos) && newVideos.length > 0) {
+                feed = [...feed, ...newVideos];
+                renderNewVideos(newVideos);
+
+                setTimeout(() => {
+                    observeLastVideo();
+                    observeNewVideos();
+                }, 100);
             }
+        } catch (err) {
+            console.error("Feed error:", err);
+        } finally {
+            isLoading = false;
         }
+    }
 
-        function renderNewVideos(videos) {
-            const container = document.getElementById('feedContainer');
+    function renderNewVideos(videos) {
+        const container = document.getElementById("feedContainer");
 
-            videos.forEach((item) => {
-                if (!item.video || !item.user || !item.dare) return;
+        videos.forEach(item => {
+            if (!item.video || !item.user || !item.dare) return;
 
-                const videoId = `video-${item.video.id}`;
-                const clickAreaId = `click-${item.video.id}`;
+            const videoId = `video-${item.video.id}`;
+            const clickAreaId = `click-${item.video.id}`;
 
-                const videoHTML = `
+            const videoHTML = `
             <div class="video-item h-screen snap-item relative flex items-center justify-center bg-gradient-to-br from-purple-950/50 via-black to-pink-950/50">
                 <div id="${clickAreaId}" class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 cursor-pointer"></div>
 
-                ${item.video.video_url ? `
+                ${
+                    item.video.video_url
+                        ? `
                     <video
                         src="${item.video.video_url}"
                         class="short-video absolute inset-0 w-full h-full object-contain bg-black"
@@ -647,14 +171,16 @@
                         playsinline
                         preload="metadata">
                     </video>
-                ` : `
+                `
+                        : `
                     <div class="absolute inset-0 flex items-center justify-center">
                         <div class="text-center">
                             <div class="text-8xl mb-4">✓</div>
                             <p class="text-2xl font-bold text-white/80">Challenge Completed</p>
                         </div>
                     </div>
-                `}
+                `
+                }
 
                 <div class="absolute bottom-20 lg:bottom-8 left-0 right-0 px-6 z-20 pointer-events-none">
                     <div class="flex items-end gap-4">
@@ -665,7 +191,9 @@
                                         ${item.user.userName[0].toUpperCase()}
                                     </div>
                                 </button>
-                                <button onclick="viewUserProfile('${item.user.userName}')" class="text-left hover:opacity-80 transition-opacity">
+                                <button onclick="viewUserProfile(${item.user.id}, '${item.user.userName}', '${item.user.bio}', ${item.user.dares}, ${item.user.likes}, ${item.user.views}, ${JSON.stringify(
+                    item.user.dares_l
+                )})" class="text-left hover:opacity-80 transition-opacity">
                                     <p class="font-bold text-lg">${item.user.userName}</p>
                                     <p class="text-sm text-gray-300">${getTimeAgo(item.video.created_at)}</p>
                                 </button>
@@ -679,9 +207,11 @@
                         <div class="flex flex-col items-center gap-6 pb-2 pointer-events-auto">
                             <button onclick="likePost(${item.video.id})" class="flex flex-col items-center gap-1 transform active:scale-110 transition-transform">
                                 <span id="likebtn-${item.video.id}" class="text-3xl">
-                                    ${item.video.liked ? '❤️' : '🩶'}
+                                    ${item.video.liked ? "❤️" : "🩶"}
                                 </span>
-                                <span class="text-sm font-bold" id="likes-${item.video.id}">${formatNumber(item.video.likes)}</span>
+                                <span class="text-sm font-bold" id="likes-${item.video.id}">${formatNumber(
+                    item.video.likes
+                )}</span>
                             </button>
                             <button class="flex flex-col items-center gap-1 transform active:scale-110 transition-transform">
                                 <span class="text-3xl">🔄</span>
@@ -693,246 +223,270 @@
             </div>
         `;
 
-                container.insertAdjacentHTML('beforeend', videoHTML);
-            });
+            container.insertAdjacentHTML("beforeend", videoHTML);
+        });
 
-            // Setup observers for new videos
-            videos.forEach((item) => {
-                const video = document.getElementById(`video-${item.video.id}`);
-                const clickArea = document.getElementById(`click-${item.video.id}`);
+        videos.forEach(item => {
+            const video = document.getElementById(`video-${item.video.id}`);
+            const clickArea = document.getElementById(`click-${item.video.id}`);
 
-                if (video && clickArea) {
-                    videoObserver.observe(video);
+            if (video && clickArea) {
+                videoObserver.observe(video);
 
-                    // Add click-to-play/pause interaction
-                    clickArea.onclick = () => {
-                        userInteracted = true;
-                        if (video.paused) {
-                            video.muted = false;
-                            video.play();
-                        } else {
-                            video.pause();
-                        }
-                    };
-                }
-            });
+                clickArea.onclick = () => {
+                    userInteracted = true;
+                    if (video.paused) {
+                        video.muted = false;
+                        video.play();
+                    } else {
+                        video.pause();
+                    }
+                };
+            }
+        });
 
-            setupVideoTracking();
+        setupVideoTracking();
+    }
+
+    function likePost(videoId) {
+        fetch("/api/like", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ post_id: videoId })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) return;
+
+                document.getElementById(
+                    `likebtn-${videoId}`
+                ).textContent = data.liked ? "❤️" : "🩶";
+
+                document.getElementById(
+                    `likes-${videoId}`
+                ).textContent = formatNumber(data.likes);
+            })
+            .catch(console.error);
+    }
+
+    function onVideoWatched(videoId, seconds) {
+        fetch("/api/video-watched", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                video_id: videoId,
+                watch_time: seconds
+            })
+        });
+    }
+
+    function showView(viewId) {
+        const views = ["feedView", "dareView", "uploadView"];
+        views.forEach(v => {
+            const el = document.getElementById(v);
+            if (el) el.classList.add("hidden");
+        });
+
+        const active = document.getElementById(`${viewId}View`);
+        if (active) active.classList.remove("hidden");
+
+        if (viewId !== "feed" && currentVideo) {
+            currentVideo.pause();
         }
 
-        function likePost(videoId) {
-            fetch('/api/like', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ post_id: videoId })
+        updateNavUI(viewId);
+    }
+
+    function updateNavUI(activeView) {
+        const buttons = ["feed", "dare", "upload"];
+        buttons.forEach(b => {
+            const mobileBtn = document.getElementById(`${b}BtnMobile`);
+            const desktopBtn = document.getElementById(`${b}BtnDesktop`);
+            const isActive = b === activeView;
+
+            if (mobileBtn) {
+                mobileBtn.classList.toggle("bg-purple-500/20", isActive);
+                mobileBtn.classList.toggle("text-purple-400", isActive);
+            }
+            if (desktopBtn) {
+                desktopBtn.classList.toggle("bg-white/10", isActive);
+                desktopBtn.classList.toggle("text-purple-400", isActive);
+            }
+        });
+    }
+
+    function spinWheel() {
+        if (isSpinning) return;
+
+        isSpinning = true;
+        const wheel = document.getElementById("wheel");
+        const dareText = document.getElementById("dareText");
+        const spinBtn = document.getElementById("spinBtn");
+        const acceptBtn = document.getElementById("acceptBtn");
+
+        wheel.classList.remove("spin-animation");
+        void wheel.offsetWidth;
+        wheel.classList.add("spin-animation");
+
+        dareText.innerText = "Selecting a dare...";
+        spinBtn.disabled = true;
+
+        setTimeout(() => {
+            const randomIndex = Math.floor(Math.random() * dares.length);
+            currentDare = dares[randomIndex];
+            dareText.innerText = currentDare;
+
+            isSpinning = false;
+            spinBtn.innerText = "🎡 SPIN AGAIN";
+            spinBtn.disabled = false;
+            acceptBtn.classList.remove("hidden");
+        }, 3000);
+    }
+
+    function acceptDare() {
+        acceptedDare = currentDare;
+        document.getElementById("uploadDareText").innerText = acceptedDare;
+        showView("upload");
+
+        const toast = document.createElement("div");
+        toast.className =
+            "fixed top-20 left-1/2 -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full z-[200] animate-bounce";
+        toast.innerText = `Dare Accepted! ${acceptedDare}`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    function handleVideoSelect(event) {
+        const file = event.target.files[0];
+        if (file && file.type.startsWith("video/")) {
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("upload_preset", UPLOAD_PRESET);
+
+            fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`, {
+                method: "POST",
+                body: formData
             })
                 .then(res => res.json())
                 .then(data => {
-                    if (data.error) return;
+                    url = data.secure_url;
+                    const preview = document.getElementById("videoPreview");
+                    const placeholder =
+                        document.getElementById("uploadPlaceholder");
+                    const previewContainer =
+                        document.getElementById("videoPreviewContainer");
+                    const uploadBtn = document.getElementById("uploadBtn");
 
-                    document.getElementById(`likebtn-${videoId}`).textContent =
-                        data.liked ? '❤️' : '🩶';
-
-                    document.getElementById(`likes-${videoId}`).textContent =
-                        formatNumber(data.likes);
-                })
-                .catch(console.error);
-        }
-
-        function onVideoWatched(videoId, seconds) {
-            console.log(`👀 Video ${videoId} watched for ${seconds}s`);
-
-            fetch('/api/video-watched', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    video_id: videoId,
-                    watch_time: seconds
-                })
-            });
-        }
-
-        // Navigation & Views
-        function showView(viewId) {
-            const views = ['feedView', 'dareView', 'uploadView'];
-            views.forEach(v => {
-                document.getElementById(v).classList.add('hidden');
-            });
-            document.getElementById(viewId + 'View').classList.remove('hidden');
-
-            if (viewId !== 'feed' && currentVideo) {
-                currentVideo.pause();
-            }
-
-            updateNavUI(viewId);
-        }
-
-        function updateNavUI(activeView) {
-            const buttons = ['feed', 'dare', 'upload'];
-            buttons.forEach(b => {
-                const mobileBtn = document.getElementById(`${b}BtnMobile`);
-                const desktopBtn = document.getElementById(`${b}BtnDesktop`);
-                if (b === activeView) {
-                    mobileBtn.classList.add('bg-purple-500/20', 'text-purple-400');
-                    desktopBtn.classList.add('bg-white/10', 'text-purple-400');
-                } else {
-                    mobileBtn.classList.remove('bg-purple-500/20', 'text-purple-400');
-                    desktopBtn.classList.remove('bg-white/10', 'text-purple-400');
-                }
-            });
-        }
-
-        // Spin Wheel Logic
-        function spinWheel() {
-            if (isSpinning) return;
-
-            isSpinning = true;
-            const wheel = document.getElementById('wheel');
-            const dareText = document.getElementById('dareText');
-            const spinBtn = document.getElementById('spinBtn');
-            const acceptBtn = document.getElementById('acceptBtn');
-
-            wheel.classList.remove('spin-animation');
-            void wheel.offsetWidth;
-            wheel.classList.add('spin-animation');
-
-            dareText.innerText = "Selecting a dare...";
-            spinBtn.disabled = true;
-
-            setTimeout(() => {
-                const randomIndex = Math.floor(Math.random() * dares.length);
-                currentDare = dares[randomIndex];
-                dareText.innerText = currentDare;
-
-                isSpinning = false;
-                spinBtn.innerText = "🎡 SPIN AGAIN";
-                spinBtn.disabled = false;
-                acceptBtn.classList.remove('hidden');
-            }, 3000);
-        }
-
-        function acceptDare() {
-            acceptedDare = currentDare;
-            document.getElementById('uploadDareText').innerText = acceptedDare;
-            showView('upload');
-
-            const toast = document.createElement('div');
-            toast.className = "fixed top-20 left-1/2 -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full z-[200] animate-bounce";
-            toast.innerText = `Dare Accepted! ${acceptedDare}`;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
-
-        // Upload Logic
-        function handleVideoSelect(event) {
-            const file = event.target.files[0];
-            if (file && file.type.startsWith('video/')) {
-                const formData = new FormData();
-                formData.append("file", file);
-                formData.append("upload_preset", UPLOAD_PRESET);
-
-                fetch("https://api.cloudinary.com/v1_1/dsfn0sc3w/video/upload", {
-                    method: "POST",
-                    body: formData
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        console.log("Uploaded video URL:", data.secure_url);
-                        url = data.secure_url;
-                        document.getElementById('videoPreview').src = url;
-                        document.getElementById('uploadPlaceholder').classList.add('hidden');
-                        document.getElementById('videoPreviewContainer').classList.remove('hidden');
-                        document.getElementById('uploadBtn').disabled = false;
-                    });
-            }
-        }
-
-        async function uploadDare() {
-            if (!acceptedDare) {
-                alert('Accept a dare first! 🎯');
-                return;
-            }
-
-            if (!url) {
-                alert('Please select a video first! 📹');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/upload-video', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        url: url,
-                        dare_text: acceptedDare
-                    })
+                    preview.src = url;
+                    placeholder.classList.add("hidden");
+                    previewContainer.classList.remove("hidden");
+                    uploadBtn.disabled = false;
                 });
+        }
+    }
 
-                await response.json();
-
-                // Reset form
-                document.getElementById('videoInput').value = '';
-                document.getElementById('uploadPlaceholder').classList.remove('hidden');
-                document.getElementById('videoPreviewContainer').classList.add('hidden');
-                document.getElementById('uploadBtn').disabled = true;
-                document.getElementById('dareText').textContent = 'Spin the wheel to get your dare!';
-                document.getElementById('acceptBtn').classList.add('hidden');
-                document.getElementById('spinBtn').textContent = '🎡 SPIN THE WHEEL';
-
-                url = null;
-                acceptedDare = null;
-
-                showView('feed');
-            } catch (err) {
-                console.error('Upload error:', err);
-                alert('Failed to upload video. Please try again.');
-            }
+    async function uploadDare() {
+        if (!acceptedDare) {
+            alert("Accept a dare first! 🎯");
+            return;
         }
 
-        // Profile & Search functions (keeping your existing code)
-        function toggleProfileMenu() {
-            const menu = document.getElementById('profileMenu');
-            menu.classList.toggle('hidden');
+        if (!url) {
+            alert("Please select a video first! 📹");
+            return;
         }
 
-        function viewProfile() {
-            let myUsername = "{{ user.username }}";
-            let bio = "{{ user.bio }}";
-            let views = "{{ user.views }}";
-            let likes = "{{ user.likes }}";
-            let dares_num = "{{ user.dares }}";
-            let dares_l = {{ user.dares_l | tojson
-        }};
-        let user_id = {{ user.id }};
+        try {
+            const response = await fetch("/api/upload-video", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    url: url,
+                    dare_text: acceptedDare
+                })
+            });
 
-        viewUserProfile(user_id, myUsername, bio, dares_num, likes, views, dares_l);
-        document.getElementById('profileModalTitle').innerText = "My Profile";
+            await response.json();
 
-        if (!document.getElementById('profileMenu').classList.contains('hidden')) {
+            document.getElementById("videoInput").value = "";
+            document
+                .getElementById("uploadPlaceholder")
+                .classList.remove("hidden");
+            document
+                .getElementById("videoPreviewContainer")
+                .classList.add("hidden");
+            document.getElementById("uploadBtn").disabled = true;
+            document.getElementById("dareText").textContent =
+                "Spin the wheel to get your dare!";
+            document.getElementById("acceptBtn").classList.add("hidden");
+            document.getElementById("spinBtn").textContent =
+                "🎡 SPIN THE WHEEL";
+
+            url = null;
+            acceptedDare = null;
+
+            showView("feed");
+        } catch (err) {
+            console.error("Upload error:", err);
+            alert("Failed to upload video. Please try again.");
+        }
+    }
+
+    function toggleProfileMenu() {
+        const menu = document.getElementById("profileMenu");
+        if (menu) {
+            menu.classList.toggle("hidden");
+        }
+    }
+
+    function viewProfile() {
+        const myUsername = "{{ user.username }}";
+        const bio = "{{ user.bio }}";
+        const views = "{{ user.views }}";
+        const likes = "{{ user.likes }}";
+        const daresNum = "{{ user.dares }}";
+        const daresL = {{ user.dares_l | tojson }};
+        const userId = {{ user.id }};
+
+        viewUserProfile(userId, myUsername, bio, daresNum, likes, views, daresL);
+        document.getElementById("profileModalTitle").innerText = "My Profile";
+
+        const menu = document.getElementById("profileMenu");
+        if (menu && !menu.classList.contains("hidden")) {
             toggleProfileMenu();
         }
-}
+    }
 
-        function viewUserProfile(user_id, username, bio, dares = 0, likes = 0, views = 0, dares_l) {
-            document.getElementById('profileModalTitle').innerText = "User Info";
-            document.getElementById('modalProfileName').innerText = username;
-            document.getElementById('modalProfileUsername').innerText = bio;
+    function viewUserProfile(
+        userId,
+        username,
+        bio,
+        dares = 0,
+        likes = 0,
+        views = 0,
+        daresL
+    ) {
+        document.getElementById("profileModalTitle").innerText = "User Info";
+        document.getElementById("modalProfileName").innerText = username;
+        document.getElementById("modalProfileUsername").innerText = bio;
 
-            const avatar = document.getElementById('modalProfileAvatar');
-            avatar.innerText = username[0].toUpperCase();
+        const avatar = document.getElementById("modalProfileAvatar");
+        avatar.innerText = username[0].toUpperCase();
 
-            document.getElementById('modalProfileDares').innerText = dares;
-            document.getElementById('modalProfileLikes').innerText = likes;
-            document.getElementById('modalProfileViews').innerText = views;
-            document.getElementById('modalDaresTitle').innerText = `@${username}'s Challenges`;
+        document.getElementById("modalProfileDares").innerText = dares;
+        document.getElementById("modalProfileLikes").innerText = likes;
+        document.getElementById("modalProfileViews").innerText = views;
+        document.getElementById(
+            "modalDaresTitle"
+        ).innerText = `@${username}'s Challenges`;
 
-            const list = document.getElementById('modalProfileDaresList');
-            list.innerHTML = "";
+        const list = document.getElementById("modalProfileDaresList");
+        list.innerHTML = "";
 
-            const dare_data = dares_l.find(u => u.user_id === user_id);
-            if (dare_data && dare_data.user_data) {
-                dare_data.user_data.forEach(dare => {
-                    list.innerHTML += `
+        const dareData = (daresL || []).find(u => u.user_id === userId);
+        if (dareData && dareData.user_data) {
+            dareData.user_data.forEach(dare => {
+                list.innerHTML += `
                 <div class="relative group overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-white/10 aspect-video flex items-center justify-center hover:scale-105 transition-transform cursor-pointer">
                     <video src="${dare.vid.video_url}" class="w-full h-full object-cover"></video>
                     <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all flex items-end p-3">
@@ -943,40 +497,50 @@
                     </div>
                 </div>
             `;
-                });
-            }
-
-            [document.getElementById('searchResultsMobile'), document.getElementById('searchResultsDesktop')].forEach(r => r.classList.add('hidden'));
-            document.getElementById('userSearchMobile').value = '';
-            document.getElementById('userSearchDesktop').value = '';
-
-            const modal = document.getElementById('profileModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            });
         }
 
-        function closeProfileModal() {
-            document.getElementById('profileModal').classList.add('hidden');
-            document.getElementById('profileModal').classList.remove('flex');
+        const resultsMobile = document.getElementById("searchResultsMobile");
+        const resultsDesktop = document.getElementById("searchResultsDesktop");
+        [resultsMobile, resultsDesktop].forEach(r => {
+            if (r) r.classList.add("hidden");
+        });
+
+        const searchMobile = document.getElementById("userSearchMobile");
+        const searchDesktop = document.getElementById("userSearchDesktop");
+        if (searchMobile) searchMobile.value = "";
+        if (searchDesktop) searchDesktop.value = "";
+
+        const modal = document.getElementById("profileModal");
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+    }
+
+    function closeProfileModal() {
+        const modal = document.getElementById("profileModal");
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+    }
+
+    function searchUsers(query) {
+        const resultsMobile = document.getElementById("searchResultsMobile");
+        const resultsDesktop = document.getElementById("searchResultsDesktop");
+
+        if (query.length < 2) {
+            [resultsMobile, resultsDesktop].forEach(res => {
+                if (res) res.classList.add("hidden");
+            });
+            return;
         }
 
-        function searchUsers(query) {
-            const resultsMobile = document.getElementById('searchResultsMobile');
-            const resultsDesktop = document.getElementById('searchResultsDesktop');
-
-            if (query.length < 2) {
-                resultsMobile.classList.add('hidden');
-                resultsDesktop.classList.add('hidden');
-                return;
-            }
-
-            const mockUsers = {{ users | tojson
-        }};
+        const mockUsers = {{ users | tojson }};
         const filtered = mockUsers.filter(u =>
             u.username.toLowerCase().includes(query.toLowerCase())
         );
 
-        const html = filtered.map(u => `
+        const html = filtered
+            .map(
+                u => `
         <div onclick='viewUserProfile(
             ${u.id},
             "${u.username}",
@@ -989,69 +553,72 @@
             <div class="font-bold">@${u.username}</div>
             <div class="text-xs text-gray-400">${u.bio}</div>
         </div>
-    `).join('');
+    `
+            )
+            .join("");
 
         [resultsMobile, resultsDesktop].forEach(res => {
-            res.innerHTML = html || '<p class="p-4 text-gray-500">No users found</p>';
-            res.classList.remove('hidden');
+            if (!res) return;
+            res.innerHTML =
+                html || '<p class="p-4 text-gray-500">No users found</p>';
+            res.classList.remove("hidden");
         });
-}
+    }
 
-        function viewSettings() {
-            alert('Settings feature coming soon!');
-        }
+    function viewSettings() {
+        alert("Settings feature coming soon!");
+    }
 
-        function logout() {
-            fetch('/logout', { method: 'POST' })
-                .then(() => window.location.href = '/login');
-        }
+    function logout() {
+        fetch("/logout", { method: "POST" }).then(
+            () => (window.location.href = "/login")
+        );
+    }
 
-        // Helpers
-        function formatNumber(num) {
-            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-            return num;
-        }
+    function formatNumber(num) {
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+        if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+        return num;
+    }
 
-        function getTimeAgo(date) {
-            const now = new Date();
-            const past = new Date(date);
-            const diff = Math.floor((now - past) / 1000);
+    function getTimeAgo(date) {
+        const now = new Date();
+        const past = new Date(date);
+        const diff = Math.floor((now - past) / 1000);
 
-            if (diff < 5) return "Just now";
-            if (diff < 60) return `${diff}s ago`;
+        if (diff < 5) return "Just now";
+        if (diff < 60) return `${diff}s ago`;
 
-            const minutes = Math.floor(diff / 60);
-            if (minutes < 60) return `${minutes}m ago`;
+        const minutes = Math.floor(diff / 60);
+        if (minutes < 60) return `${minutes}m ago`;
 
-            const hours = Math.floor(minutes / 60);
-            if (hours < 24) return `${hours}h ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
 
-            const days = Math.floor(hours / 24);
-            if (days < 7) return `${days}d ago`;
+        const days = Math.floor(hours / 24);
+        if (days < 7) return `${days}d ago`;
 
-            const weeks = Math.floor(days / 7);
-            if (weeks < 4) return `${weeks}w ago`;
+        const weeks = Math.floor(days / 7);
+        if (weeks < 4) return `${weeks}w ago`;
 
-            const months = Math.floor(days / 30);
-            if (months < 12) return `${months}mo ago`;
+        const months = Math.floor(days / 30);
+        if (months < 12) return `${months}mo ago`;
 
-            const years = Math.floor(days / 365);
-            return `${years}y ago`;
-        }
+        const years = Math.floor(days / 365);
+        return `${years}y ago`;
+    }
 
-        // Initialize
-        window.onload = () => {
-            setupScrollObserver();
-            loadFeed();
-            showView('feed');
+    window.onload = () => {
+        setupScrollObserver();
+        loadFeed();
+        showView("feed");
 
-            // Unlock audio on first interaction
-            document.addEventListener('click', () => {
+        document.addEventListener(
+            "click",
+            () => {
                 userInteracted = true;
-            }, { once: true });
-        };
-    </script>
-</body>
-
-</html>
+            },
+            { once: true }
+        );
+    };
+</script>
