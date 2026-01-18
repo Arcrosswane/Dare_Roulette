@@ -90,7 +90,7 @@
                     Log in to continue your challenge journey
                 </p>
                 <!-- Login Form -->
-                <form action="/login" method="post" class="space-y-4 lg:space-y-5">
+                <form id="loginForm" action="/login" method="post" class="space-y-4 lg:space-y-5">
                     <!-- Email -->
                     <div>
                         <label for="email" class="block text-xs lg:text-sm font-medium mb-2 text-gray-300">Email or
@@ -156,30 +156,61 @@
             </div>
         </div>
     </section>
+    <script src="/static/storage.js"></script>
     <script>
-        async function saveLogin(userId) {
-            await Capacitor.Plugins.Preferences.set({
-                key: 'userId',
-                value: String(userId)
-            });
-        }
-        document.getElementById('form').addEventListener('submit', () => {
-            email = document.getElementById('email')
-            password = document.getElementById('password')
-            fetch('/api/login', {
-                method: 'POST',
-                body: {
-                    email: email,
-                    pass: pass
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            // We want to intercept the submit to save to storage, 
+            // but we also want the form to submit normally?
+            // Actually, the original code had a 'fetch' call which implies AJAX login.
+            // But the form also has action="/login". 
+            // If we use AJAX, we should preventDefault.
+            // If we want normal submit, we can't easily wait for async storage set unless we preventDefault, wait, then submit.
+            // Given the backend has /api/login AND /login route, and the user tried to use /api/login in the script...
+            // I will assume they want AJAX login OR they just wanted to side-effect save the ID.
+            // If they side-effect save, the browser might navigate away before it saves.
+            // Safer to use AJAX and redirect manually.
+            
+            e.preventDefault();
+            
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const submitBtn = document.getElementById('submit');
+
+            // Visual feedback
+            const originalBtnText = submitBtn.innerText;
+            submitBtn.innerText = "Logging in...";
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: emailInput.value,
+                        pass: passwordInput.value
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'OK') {
+                    // Save to global storage (Capacitor or Session)
+                    await window.storageService.set('userId', data.id);
+                    
+                    // Redirect to dashboard
+                    window.location.href = '/dashboard';
+                } else {
+                    alert(data.message || 'Login failed');
+                    submitBtn.innerText = originalBtnText;
+                    submitBtn.disabled = false;
                 }
-            })
-            .then(res=>res.json)
-            .then((res)=>{
-                if (res.status == 'OK'){
-                    saveLogin(res.id)
-                }
-            })
-        })
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('An error occurred during login');
+                submitBtn.innerText = originalBtnText;
+                submitBtn.disabled = false;
+            }
+        });
     </script>
 </body>
 

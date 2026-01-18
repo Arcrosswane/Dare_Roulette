@@ -358,6 +358,7 @@ def login_2():
             if username != None:
                 user = User.query.filter_by(userName=username).first()
                 if user and check_password_hash(user.password, password):
+                    session['id'] = user.id
                     return {
                         'status': 'OK',
                         'id': user.id
@@ -365,6 +366,7 @@ def login_2():
             else:
                 user = User.query.filter_by(email=email).first()
                 if user and check_password_hash(user.password, password):
+                    session['id'] = user.id
                     return {
                         'status': 'OK',
                         'id': user.id
