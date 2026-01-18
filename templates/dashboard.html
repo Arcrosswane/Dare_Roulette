@@ -513,7 +513,7 @@
 
                 if (entry.isIntersecting) {
                     // Safety: Pause ALL other videos first to handle fast scroll race conditions
-                    document.querySelectorAll('video').forEach(v => {
+                    document.querySelectorAll('.short-video').forEach(v => {
                         if (v !== video) {
                             v.pause();
                             v.currentTime = 0; // optional: reset
@@ -528,6 +528,15 @@
                         // AbortError is common when pausing immediately after play interaction
                         if (err.name !== 'AbortError') console.log('Play error:', err);
                     });
+
+                    video.addEventListener('click', () => {
+                        if (video.paused) {
+                            video.play();
+                        }
+                        else {
+                            video.pause();
+                        }
+                    })
                 } else {
                     // Unconditional pause if it leaves the view
                     video.pause();
@@ -1022,6 +1031,7 @@
 
             const mockUsers = {{ users | tojson
         }};
+
         const filtered = mockUsers.filter(u =>
             u.username.toLowerCase().includes(query.toLowerCase())
         );
