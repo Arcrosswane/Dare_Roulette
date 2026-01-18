@@ -444,6 +444,13 @@
                             <div class="text-4xl sm:text-5xl md:text-6xl mb-3 sm:mb-4">📹</div>
                             <p class="text-sm sm:text-base md:text-lg font-semibold mb-2">Click to upload video</p>
                             <p class="text-xs sm:text-sm text-gray-400">MP4, MOV, AVI up to 100MB</p>
+
+                            <!-- Internal Upload Loading Overlay -->
+                            <div id="uploadLoadingOverlay"
+                                class="hidden absolute inset-0 bg-black/80 flex-col items-center justify-center rounded-xl sm:rounded-2xl z-20">
+                                <div class="text-4xl mb-4 animate-spin">⏳</div>
+                                <p class="text-purple-400 font-bold animate-pulse">Processing Video...</p>
+                            </div>
                         </div>
 
                         <div id="videoPreviewContainer"
@@ -605,12 +612,14 @@
             isLoading = true;
 
             try {
+                const userId = await window.storageService.get('userId');
                 const response = await fetch('/api/get-videos', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         offset: feed.length,
-                        limit: 5
+                        limit: 5,
+                        user_id: userId
                     })
                 });
 
@@ -731,11 +740,15 @@
             setupVideoTracking();
         }
 
-        function likePost(videoId) {
+        async function likePost(videoId) {
+            const userId = await window.storageService.get('userId');
             fetch('/api/like', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ post_id: videoId })
+                body: JSON.stringify({
+                    post_id: videoId,
+                    user_id: userId
+                })
             })
                 .then(res => res.json())
                 .then(data => {
@@ -835,26 +848,41 @@
         }
 
         // Upload Logic
-        function handleVideoSelect(event) {
+        async function handleVideoSelect(event) {
             const file = event.target.files[0];
             if (file && file.type.startsWith('video/')) {
+                // Show loading overlay
+                document.getElementById('uploadLoadingOverlay').classList.remove('hidden');
+                document.getElementById('uploadLoadingOverlay').classList.add('flex');
+
                 const formData = new FormData();
                 formData.append("file", file);
                 formData.append("upload_preset", UPLOAD_PRESET);
 
-                fetch("https://api.cloudinary.com/v1_1/dsfn0sc3w/video/upload", {
-                    method: "POST",
-                    body: formData
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        console.log("Uploaded video URL:", data.secure_url);
-                        url = data.secure_url;
-                        document.getElementById('videoPreview').src = url;
-                        document.getElementById('uploadPlaceholder').classList.add('hidden');
-                        document.getElementById('videoPreviewContainer').classList.remove('hidden');
-                        document.getElementById('uploadBtn').disabled = false;
+                try {
+                    const res = await fetch("https://api.cloudinary.com/v1_1/dsfn0sc3w/video/upload", {
+                        method: "POST",
+                        body: formData
                     });
+                    const data = await res.json();
+
+                    console.log("Uploaded video URL:", data.secure_url);
+                    url = data.secure_url;
+
+                    // Hide loading overlay
+                    document.getElementById('uploadLoadingOverlay').classList.add('hidden');
+                    document.getElementById('uploadLoadingOverlay').classList.remove('flex');
+
+                    document.getElementById('videoPreview').src = url;
+                    document.getElementById('uploadPlaceholder').classList.add('hidden');
+                    document.getElementById('videoPreviewContainer').classList.remove('hidden');
+                    document.getElementById('uploadBtn').disabled = false;
+                } catch (e) {
+                    console.error("Cloudinary upload failed", e);
+                    alert("Upload failed. Please try again.");
+                    document.getElementById('uploadLoadingOverlay').classList.add('hidden');
+                    document.getElementById('uploadLoadingOverlay').classList.remove('flex');
+                }
             }
         }
 
@@ -870,12 +898,14 @@
             }
 
             try {
+                const userId = await window.storageService.get('userId');
                 const response = await fetch('/api/upload-video', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         url: url,
-                        dare_text: acceptedDare
+                        dare_text: acceptedDare,
+                        user_id: userId
                     })
                 });
 

@@ -55,13 +55,16 @@ class Video(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     activities = db.relationship("UserVideoActivity", backref="video", lazy=True)
     
-    def to_dict(self):
+    def to_dict(self, current_user_id=None):
         # Check if current user has liked this video
         liked = False
-        if session.get('id'):
+        # Use simple ID check if provided, otherwise fallback to session
+        uid = current_user_id if current_user_id else session.get('id')
+        
+        if uid:
             activity = UserVideoActivity.query.filter_by(
                 video_id=self.id,
-                user_id=session.get('id')
+                user_id=uid
             ).first()
             if activity:
                 liked = activity.like
@@ -249,8 +252,14 @@ def upload_video():
         url = temp.get('url')
         dare_text = temp.get('dare_text')
         
+        # Robust user ID check: Session -> JSON Body
+        uid = session.get('id') or temp.get('user_id')
+        
+        if not uid:
+            return {'status': 'FAIL', 'message': 'Not logged in'}, 401
+        
         video = Video(
-            user_id=session.get('id'),
+            user_id=uid,
             dare_id=Dare.query.filter_by(text=dare_text).first().id,
             video_url=url
         )
@@ -264,13 +273,14 @@ def give_videos():
     if request.method == 'POST':
         offset = request.json.get('offset', 0)
         limit = request.json.get('limit', 5)
+        uid = session.get('id') or request.json.get('user_id')
         
         videos = get_videos(limit=limit, offset=offset)
         
         feed = []
         for ved in videos:
             feed.append({
-                'video': ved.to_dict(),
+                'video': ved.to_dict(current_user_id=uid),
                 'user': User.query.filter_by(id=ved.user_id).first().to_dict(),
                 'dare': Dare.query.filter_by(id=ved.dare_id).first().to_dict()
             })
@@ -279,7 +289,9 @@ def give_videos():
 
 @app.route('/api/like', methods=['POST'])
 def like_post():
-    user_id = session.get('id')
+    # Robust user ID check
+    user_id = session.get('id') or request.json.get('user_id')
+    
     if not user_id:
         return {'error': 'Not logged in'}, 401
     
