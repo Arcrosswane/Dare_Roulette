@@ -317,9 +317,6 @@ def like_post():
     if not video:
         return {'error': 'Video not found'}, 404
     
-    if video.user_id == user_id:
-        return {'error': 'Owner cannot like'}, 403
-    
     # Check if user already has activity for this video
     activity = UserVideoActivity.query.filter_by(
         video_id=vid_id,
