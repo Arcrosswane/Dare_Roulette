@@ -61,10 +61,29 @@
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
         }
+
+        #loading-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: black;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease;
+        }
     </style>
+    <script src="/static/storage.js"></script>
 </head>
 
 <body class="bg-black text-white overflow-x-hidden">
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="text-center">
+            <div class="text-6xl mb-4 animate-bounce">🎯</div>
+            <p class="text-purple-400 font-bold animate-pulse">Loading...</p>
+        </div>
+    </div>
     <!-- Animated background -->
     <div class="fixed inset-0 -z-10">
         <div class="absolute inset-0 bg-gradient-to-br from-purple-950 via-black to-pink-950 gradient-animate"></div>
@@ -358,36 +377,52 @@
         </div>
     </footer>
 
-    <script src="/static/storage.js"></script>
     <script>
         function scrollToApp() {
             document.getElementById('app-section').scrollIntoView({ behavior: 'smooth' });
         }
 
         document.addEventListener("DOMContentLoaded", async () => {
-            const userId = await window.storageService.get('userId');
+            const loadingOverlay = document.getElementById('loading-overlay');
 
-            if (userId) {
-                // Attempt to auto-login (restore session)
-                try {
-                    const response = await fetch('/api/auto-login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: userId })
-                    });
+            // Minimal timeout to prevent flickering for fast loads
+            // checking storage...
+            try {
+                const userId = await window.storageService.get('userId');
 
-                    const data = await response.json();
+                if (userId) {
+                    // User found, try auto-login (keep overlay ON)
+                    try {
+                        const response = await fetch('/api/auto-login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ user_id: userId })
+                        });
 
-                    if (data.status === 'OK') {
-                        window.location.href = "/dashboard";
-                    } else {
-                        // If auto-login fails (e.g. user deleted), clear bad ID
-                        await window.storageService.remove('userId');
+                        const data = await response.json();
+
+                        if (data.status === 'OK') {
+                            // Redirecting... keep overlay
+                            window.location.href = "/dashboard";
+                            return; // Stop execution, don't hide overlay
+                        } else {
+                            // Invalid user
+                            await window.storageService.remove('userId');
+                        }
+                    } catch (e) {
+                        console.error("Auto-login request failed:", e);
                     }
-                } catch (e) {
-                    console.error("Auto-login check failed:", e);
                 }
+            } catch (err) {
+                console.error("Storage check failed:", err);
             }
+
+            // If we reached here, either no user or login failed.
+            // Hide the overlay to show the landing page.
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+            }, 500);
         });
     </script>
 </body>
