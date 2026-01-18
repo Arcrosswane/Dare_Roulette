@@ -654,7 +654,7 @@
                 const clickAreaId = `click-${item.video.id}`;
 
                 const videoHTML = `
-            <div class="video-item h-screen snap-item relative flex items-center justify-center bg-gradient-to-br from-purple-950/50 via-black to-pink-950/50">
+            <div class="video-item h-[100vh] snap-item relative flex items-center justify-center bg-black">
                 <div id="${clickAreaId}" class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 cursor-pointer"></div>
 
                 ${item.video.video_url ? `
@@ -665,6 +665,7 @@
                         muted
                         loop
                         playsinline
+                        poster="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9ImJsYWNrIi8+PC9zdmc+"
                         preload="metadata">
                     </video>
                 ` : `
@@ -676,7 +677,7 @@
                     </div>
                 `}
 
-                <div class="absolute bottom-20 lg:bottom-8 left-0 right-0 px-6 z-20 pointer-events-none">
+                <div class="absolute bottom-24 lg:bottom-12 left-0 right-0 px-6 z-20 pointer-events-none">
                     <div class="flex items-end gap-4">
                         <div class="flex-1">
                             <div class="flex items-center gap-3 mb-3 pointer-events-auto">
