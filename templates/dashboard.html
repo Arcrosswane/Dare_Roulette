@@ -512,23 +512,31 @@
                 if (!userInteracted) return; // don’t autoplay until user interacts
 
                 if (entry.isIntersecting) {
-                    // Pause previous video
-                    if (currentVideo && currentVideo !== video) {
-                        currentVideo.pause();
-                        currentVideo.currentTime = 0;
-                    }
+                    // Safety: Pause ALL other videos first to handle fast scroll race conditions
+                    document.querySelectorAll('video').forEach(v => {
+                        if (v !== video) {
+                            v.pause();
+                            v.currentTime = 0; // optional: reset
+                        }
+                    });
 
                     currentVideo = video;
 
                     // Play the new video
-                    video.muted = false; // unmute if you want
-                    video.play().catch(err => console.log('Play error:', err));
+                    video.muted = false;
+                    video.play().catch(err => {
+                        // AbortError is common when pausing immediately after play interaction
+                        if (err.name !== 'AbortError') console.log('Play error:', err);
+                    });
                 } else {
-                    // Pause video if not in view
-                    if (currentVideo === video) currentVideo.pause();
+                    // Unconditional pause if it leaves the view
+                    video.pause();
+                    if (currentVideo === video) {
+                        currentVideo = null;
+                    }
                 }
             });
-        }, { threshold: 0.7 });
+        }, { threshold: 0.6 }); // Lowered slightly to capture it reliably but high enough for focus
 
         // Function to observe all new videos (call after appending from API)
         function observeNewVideos() {
