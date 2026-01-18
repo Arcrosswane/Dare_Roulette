@@ -310,7 +310,7 @@
         </div>
     </aside>
 
-    <main class="pt-16 lg:pt-0 lg:ml-64 pb-24 lg:pb-0">
+    <main class="pt-0 lg:pt-0 lg:ml-64 pb-24 lg:pb-0">
         <!-- Profile Modal -->
         <div id="profileModal" class="hidden fixed inset-0 z-[100] items-center justify-center p-4 animate-fadeIn">
             <div onclick="closeProfileModal()" class="absolute inset-0 bg-black/80 backdrop-blur-md"></div>
@@ -424,7 +424,7 @@
 
         <!-- Dare View - Mobile Optimized -->
         <div id="dareView"
-            class="hidden min-h-screen overflow-y-auto bg-gradient-to-br from-purple-950 via-black to-pink-950">
+            class="hidden min-h-screen pt-20 overflow-y-auto bg-gradient-to-br from-purple-950 via-black to-pink-950">
             <div
                 class="max-w-2xl px-4 sm:px-6 lg:mx-auto py-6 pb-32 lg:pb-6 flex flex-col items-center justify-center min-h-screen">
                 <h1
@@ -463,7 +463,7 @@
 
         <!-- Upload View - Mobile Optimized -->
         <div id="uploadView"
-            class="hidden min-h-screen overflow-y-auto bg-gradient-to-br from-pink-950 via-black to-purple-950">
+            class="hidden min-h-screen pt-20 overflow-y-auto bg-gradient-to-br from-pink-950 via-black to-purple-950">
             <div class="max-w-2xl mx-auto px-4 sm:px-6 py-6">
                 <h1
                     class="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6 md:mb-8 text-center bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
@@ -894,8 +894,36 @@
         async function likePost(dbId, uniqueId, forceLike = false) {
             const userId = await window.storageService.get('userId');
 
-            // Optimistic UI Update (optional, but good for responsiveness)
-            // But let's wait for server response to be safe.
+            const btn = document.getElementById(`likebtn-${dbId}-${uniqueId}`);
+            const count = document.getElementById(`likes-${dbId}-${uniqueId}`);
+
+            // Optimistic UI Update
+            let initialLiked = false;
+            let initialCount = 0;
+
+            if (btn && count) {
+                initialLiked = btn.textContent.trim() === '❤️';
+                initialCount = parseInt(count.textContent.replace(/,/g, '').replace(/K|M/g, '000')); // Rough parse
+
+                // Determine new state
+                let newLiked = initialLiked;
+                if (forceLike) {
+                    newLiked = true;
+                } else {
+                    newLiked = !initialLiked;
+                }
+
+                // Only update if state changes
+                if (newLiked !== initialLiked) {
+                    btn.textContent = newLiked ? '❤️' : '🩶';
+                    // Very simple count update for UI feeling
+                    // Note: formatNumber returns strings like "1.2K", parsing it back strictly is hard without raw value.
+                    // For now, we will trust the server response for the number, 
+                    // BUT to make it feel instant, we can try to guess.
+                    // If it's a simple number, update it. If it's "1.2K", maybe don't touch it or just toggle color.
+                    // Let's just toggle color instantly.
+                }
+            }
 
             fetch('/api/like', {
                 method: 'POST',
@@ -908,15 +936,21 @@
             })
                 .then(res => res.json())
                 .then(data => {
-                    if (data.error) return;
+                    if (data.error) {
+                        // Revert if error
+                        if (btn) btn.textContent = initialLiked ? '❤️' : '🩶';
+                        return;
+                    }
 
-                    const btn = document.getElementById(`likebtn-${dbId}-${uniqueId}`);
-                    const count = document.getElementById(`likes-${dbId}-${uniqueId}`);
-
+                    // Confirm state with server data
                     if (btn) btn.textContent = data.liked ? '❤️' : '🩶';
                     if (count) count.textContent = formatNumber(data.likes);
                 })
-                .catch(console.error);
+                .catch(err => {
+                    console.error('Like error:', err);
+                    // Revert if error
+                    if (btn) btn.textContent = initialLiked ? '❤️' : '🩶';
+                });
         }
 
         function onVideoWatched(videoId, seconds) {
