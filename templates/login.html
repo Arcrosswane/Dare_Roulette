@@ -114,8 +114,7 @@
                     </div>
 
                     <!-- Submit Button -->
-                    <button type="submit"
-                        id="submit"
+                    <button type="submit" id="submit"
                         class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl lg:rounded-2xl py-4 lg:py-5 font-bold text-base lg:text-lg transition-all duration-300 transform active:scale-95 hover:scale-105 shadow-xl shadow-purple-500/50">
                         Log In 🎯
                     </button>
@@ -158,6 +157,31 @@
     </section>
     <script src="/static/storage.js"></script>
     <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const userId = await window.storageService.get('userId');
+
+            if (userId) {
+                // Attempt to auto-login (restore session)
+                try {
+                    const response = await fetch('/api/auto-login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.status === 'OK') {
+                        window.location.href = "/dashboard";
+                    } else {
+                        await window.storageService.remove('userId');
+                    }
+                } catch (e) {
+                    console.error("Auto-login check failed:", e);
+                }
+            }
+        });
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             // We want to intercept the submit to save to storage, 
             // but we also want the form to submit normally?
@@ -169,9 +193,9 @@
             // I will assume they want AJAX login OR they just wanted to side-effect save the ID.
             // If they side-effect save, the browser might navigate away before it saves.
             // Safer to use AJAX and redirect manually.
-            
+
             e.preventDefault();
-            
+
             const emailInput = document.getElementById('email');
             const passwordInput = document.getElementById('password');
             const submitBtn = document.getElementById('submit');
@@ -196,7 +220,7 @@
                 if (data.status === 'OK') {
                     // Save to global storage (Capacitor or Session)
                     await window.storageService.set('userId', data.id);
-                    
+
                     // Redirect to dashboard
                     window.location.href = '/dashboard';
                 } else {

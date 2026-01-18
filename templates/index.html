@@ -591,11 +591,30 @@
                     function scrollToApp() {
                         document.getElementById('app-section').scrollIntoView({ behavior: 'smooth' });
                     }
+
                     document.addEventListener("DOMContentLoaded", async () => {
                         const userId = await window.storageService.get('userId');
 
                         if (userId) {
-                            window.location.href = "/dashboard";
+                            // Attempt to auto-login (restore session)
+                            try {
+                                const response = await fetch('/api/auto-login', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ user_id: userId })
+                                });
+
+                                const data = await response.json();
+
+                                if (data.status === 'OK') {
+                                    window.location.href = "/dashboard";
+                                } else {
+                                    // If auto-login fails (e.g. user deleted), clear bad ID
+                                    await window.storageService.remove('userId');
+                                }
+                            } catch (e) {
+                                console.error("Auto-login check failed:", e);
+                            }
                         }
                     });
                 </script>

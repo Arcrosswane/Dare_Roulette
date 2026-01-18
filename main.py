@@ -372,9 +372,22 @@ def login_2():
                         'id': user.id
                     }
             return {
-                'status': 'BAD',
                 'message': 'No user found!'
             }
+
+@app.route('/api/auto-login', methods=['POST'])
+def auto_login():
+    if request.method == 'POST':
+        temp = request.json
+        user_id = temp.get('user_id')
+        
+        if user_id:
+            user = User.query.get(user_id)
+            if user:
+                session['id'] = user.id
+                return {'status': 'OK', 'id': user.id}
+        
+        return {'status': 'FAIL', 'message': 'Invalid user'}
             
 @app.route("/init-db")
 def init_db():
