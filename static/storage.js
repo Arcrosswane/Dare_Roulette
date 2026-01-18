@@ -1,6 +1,6 @@
 /**
  * StorageService for Dare-Roulette
- * Handles cross-platform storage (Mobile: Capacitor Preferences, Web: SessionStorage)
+ * Handles cross-platform storage (Mobile: Capacitor Preferences, Web: LocalStorage)
  */
 class StorageService {
     _isCapacitor() {
@@ -24,8 +24,8 @@ class StorageService {
                     value: stringValue
                 });
             } else {
-                console.log('StorageService: Saving to sessionStorage', key);
-                sessionStorage.setItem(key, stringValue);
+                console.log('StorageService: Saving to localStorage', key);
+                localStorage.setItem(key, stringValue);
             }
         } catch (error) {
             console.error('StorageService set error:', error);
@@ -44,8 +44,8 @@ class StorageService {
                 const result = await Capacitor.Plugins.Preferences.get({ key: key });
                 return result.value;
             } else {
-                console.log('StorageService: Reading from sessionStorage', key);
-                return sessionStorage.getItem(key);
+                console.log('StorageService: Reading from localStorage', key);
+                return localStorage.getItem(key);
             }
         } catch (error) {
             console.error('StorageService get error:', error);
@@ -62,7 +62,7 @@ class StorageService {
             if (this._isCapacitor()) {
                 await Capacitor.Plugins.Preferences.remove({ key: key });
             } else {
-                sessionStorage.removeItem(key);
+                localStorage.removeItem(key);
             }
         } catch (error) {
             console.error('StorageService remove error:', error);
@@ -77,7 +77,7 @@ class StorageService {
             if (this._isCapacitor()) {
                 await Capacitor.Plugins.Preferences.clear();
             } else {
-                sessionStorage.clear();
+                localStorage.clear();
             }
         } catch (error) {
             console.error('StorageService clear error:', error);
