@@ -314,15 +314,27 @@ def like_post():
         activity = UserVideoActivity(video_id=vid_id, user_id=user_id)
         db.session.add(activity)
     
-    # Toggle like
-    if activity.like:
-        activity.like = False
-        video.likes = max(0, video.likes - 1)
-        liked = False
+    # Toggle like or Force Like
+    force_like = request.json.get('force_like')
+    
+    if force_like:
+        # Only modify if not already liked
+        if not activity.like:
+            activity.like = True
+            video.likes += 1
+            liked = True
+        else:
+            liked = True # Already liked
     else:
-        activity.like = True
-        video.likes += 1
-        liked = True
+        # Standard Toggle
+        if activity.like:
+            activity.like = False
+            video.likes = max(0, video.likes - 1)
+            liked = False
+        else:
+            activity.like = True
+            video.likes += 1
+            liked = True
     
     video.score = calculate_score(video)
     db.session.commit()

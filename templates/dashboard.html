@@ -46,6 +46,52 @@
             -webkit-backdrop-filter: blur(10px);
         }
 
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        @keyframes heartPop {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.5);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0;
+            }
+        }
+
+        .animate-heart-pop {
+            animation: heartPop 0.8s ease-out forwards;
+        }
+
+        @keyframes fadeOut {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            100% {
+                opacity: 0;
+                transform: scale(1.5);
+            }
+        }
+
+        .animate-fade-out {
+            animation: fadeOut 0.5s ease-out forwards;
+        }
+
         .wheel {
             width: min(280px, 80vw);
             height: min(280px, 80vw);
@@ -493,6 +539,8 @@
         let watchTimers = {};
         let watchedVideos = new Set();
         let scrollObserver = null;
+        let clickTimer = null;
+        let lastClickTime = 0;
 
         const CLOUD_NAME = "dsfn0sc3w";
         const UPLOAD_PRESET = "Dare-Roulette";
@@ -528,15 +576,6 @@
                         // AbortError is common when pausing immediately after play interaction
                         if (err.name !== 'AbortError') console.log('Play error:', err);
                     });
-
-                    video.addEventListener('click', () => {
-                        if (video.paused) {
-                            video.play();
-                        }
-                        else {
-                            video.pause();
-                        }
-                    })
                 } else {
                     // Unconditional pause if it leaves the view
                     video.pause();
@@ -554,12 +593,7 @@
                     videoObserver.observe(video);
                     video.dataset.observed = 'true';
 
-                    // click-to-toggle
-                    video.addEventListener('click', () => {
-                        userInteracted = true;
-                        if (video.paused) video.play();
-                        else video.pause();
-                    });
+                    // click-to-toggle removed (handled by onclick="handleVideoClick")
                 }
             });
         }
@@ -611,6 +645,14 @@
                             onVideoWatched(video.id, watchedSeconds);
                             watchedVideos.add(video.id);
                         }
+                    }
+                });
+
+                video.addEventListener('timeupdate', () => {
+                    const progressBar = document.getElementById(`progress-${video.id}`);
+                    if (progressBar) {
+                        const percent = (video.currentTime / video.duration) * 100;
+                        progressBar.style.width = `${percent}%`;
                     }
                 });
 
@@ -672,7 +714,17 @@
 
                 const videoHTML = `
             <div class="video-item h-[100vh] snap-item relative flex items-center justify-center bg-black">
-                <div id="${clickAreaId}" class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 cursor-pointer"></div>
+                <div id="${clickAreaId}" onclick="handleVideoClick('${videoId}')" class="absolute inset-0 bg-transparent z-10 cursor-pointer flex items-center justify-center">
+                    <!-- Heart Animation Overlay -->
+                    <div id="heart-${videoId}" class="hidden text-8xl transition-transform select-none pointer-events-none drop-shadow-lg">❤️</div>
+                    <!-- Play/Pause Icon Overlay -->
+                    <div id="play-icon-${videoId}" class="hidden text-6xl text-white/80 transition-opacity select-none pointer-events-none bg-black/40 rounded-full p-4">▶️</div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="absolute bottom-0 left-0 right-0 h-1 bg-white/20 z-30">
+                    <div id="progress-${videoId}" class="h-full bg-red-600 w-0 transition-all duration-100 ease-linear"></div>
+                </div>
 
                 ${item.video.video_url ? `
                     <video
@@ -735,37 +787,88 @@
             });
 
             // Setup observers for new videos
+            // Setup observers for new videos
             videos.forEach((item) => {
                 const video = document.getElementById(`video-${item.video.id}`);
-                const clickArea = document.getElementById(`click-${item.video.id}`);
-
-                if (video && clickArea) {
+                if (video) {
                     videoObserver.observe(video);
-
-                    // Add click-to-play/pause interaction
-                    clickArea.onclick = () => {
-                        userInteracted = true;
-                        if (video.paused) {
-                            video.muted = false;
-                            video.play();
-                        } else {
-                            video.pause();
-                        }
-                    };
                 }
             });
 
             setupVideoTracking();
         }
 
-        async function likePost(videoId) {
+        function handleVideoClick(videoId) {
+            const now = Date.now();
+            const timeDiff = now - lastClickTime;
+
+            if (timeDiff < 300) {
+                // Double Tap
+                clearTimeout(clickTimer);
+                handleDoubleTap(videoId);
+            } else {
+                // Single Tap (Wait to see if it becomes double)
+                clickTimer = setTimeout(() => {
+                    togglePlay(videoId);
+                }, 300);
+            }
+            lastClickTime = now;
+        }
+
+        function handleDoubleTap(videoId) {
+            const heart = document.getElementById(`heart-${videoId}`);
+            if (heart) {
+                heart.classList.remove('hidden');
+                heart.classList.add('animate-heart-pop');
+                setTimeout(() => {
+                    heart.classList.remove('animate-heart-pop');
+                    heart.classList.add('hidden');
+                }, 1000);
+            }
+            likePost(videoId, true); // Force like
+        }
+
+        function togglePlay(videoId) {
+            userInteracted = true;
+            const video = document.getElementById(videoId);
+            const playIcon = document.getElementById(`play-icon-${videoId}`);
+
+            if (!video) return;
+
+            // Simple Play/Pause Icon Animation
+            if (playIcon) {
+                playIcon.classList.remove('hidden');
+                playIcon.innerText = video.paused ? '▶️' : '⏸️';
+                playIcon.classList.add('animate-fade-out');
+                setTimeout(() => {
+                    playIcon.classList.remove('animate-fade-out');
+                    playIcon.classList.add('hidden');
+                }, 600);
+            }
+
+            if (video.paused) {
+                // Pause all others first
+                document.querySelectorAll('.short-video').forEach(v => {
+                    if (v !== video) v.pause();
+                });
+
+                video.muted = false;
+                video.play().catch(console.error);
+                currentVideo = video;
+            } else {
+                video.pause();
+            }
+        }
+
+        async function likePost(videoId, forceLike = false) {
             const userId = await window.storageService.get('userId');
             fetch('/api/like', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     post_id: videoId,
-                    user_id: userId
+                    user_id: userId,
+                    force_like: forceLike
                 })
             })
                 .then(res => res.json())
