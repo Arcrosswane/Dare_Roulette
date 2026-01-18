@@ -3,11 +3,10 @@
  * Handles cross-platform storage (Mobile: Capacitor Preferences, Web: SessionStorage)
  */
 class StorageService {
-    constructor() {
-        // Check if Capacitor environment and Preferences plugin are available
-        this.isCapacitor = typeof Capacitor !== 'undefined' &&
+    _isCapacitor() {
+        return (typeof Capacitor !== 'undefined' &&
             Capacitor.Plugins &&
-            Capacitor.Plugins.Preferences;
+            Capacitor.Plugins.Preferences);
     }
 
     /**
@@ -18,12 +17,14 @@ class StorageService {
     async set(key, value) {
         try {
             const stringValue = String(value);
-            if (this.isCapacitor) {
+            if (this._isCapacitor()) {
+                console.log('StorageService: Saving to Capacitor Preferences', key);
                 await Capacitor.Plugins.Preferences.set({
                     key: key,
                     value: stringValue
                 });
             } else {
+                console.log('StorageService: Saving to sessionStorage', key);
                 sessionStorage.setItem(key, stringValue);
             }
         } catch (error) {
@@ -38,10 +39,12 @@ class StorageService {
      */
     async get(key) {
         try {
-            if (this.isCapacitor) {
+            if (this._isCapacitor()) {
+                console.log('StorageService: Reading from Capacitor Preferences', key);
                 const result = await Capacitor.Plugins.Preferences.get({ key: key });
                 return result.value;
             } else {
+                console.log('StorageService: Reading from sessionStorage', key);
                 return sessionStorage.getItem(key);
             }
         } catch (error) {
@@ -56,7 +59,7 @@ class StorageService {
      */
     async remove(key) {
         try {
-            if (this.isCapacitor) {
+            if (this._isCapacitor()) {
                 await Capacitor.Plugins.Preferences.remove({ key: key });
             } else {
                 sessionStorage.removeItem(key);
@@ -71,7 +74,7 @@ class StorageService {
      */
     async clear() {
         try {
-            if (this.isCapacitor) {
+            if (this._isCapacitor()) {
                 await Capacitor.Plugins.Preferences.clear();
             } else {
                 sessionStorage.clear();

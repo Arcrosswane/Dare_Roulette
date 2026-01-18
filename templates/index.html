@@ -355,40 +355,41 @@
                         class="w-10 h-10 lg:w-12 lg:h-12 glassmorphism rounded-full flex items-center justify-center hover:bg-white/10 active:bg-white/10 transition text-lg lg:text-xl">📷</button>
                 </div>
             </div>
-            </section>
+        </div>
+    </footer>
 
-            <script src="/static/storage.js"></script>
-            <script>
-                function scrollToApp() {
-                    document.getElementById('app-section').scrollIntoView({ behavior: 'smooth' });
-                }
+    <script src="/static/storage.js"></script>
+    <script>
+        function scrollToApp() {
+            document.getElementById('app-section').scrollIntoView({ behavior: 'smooth' });
+        }
 
-                document.addEventListener("DOMContentLoaded", async () => {
-                    const userId = await window.storageService.get('userId');
+        document.addEventListener("DOMContentLoaded", async () => {
+            const userId = await window.storageService.get('userId');
 
-                    if (userId) {
-                        // Attempt to auto-login (restore session)
-                        try {
-                            const response = await fetch('/api/auto-login', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ user_id: userId })
-                            });
+            if (userId) {
+                // Attempt to auto-login (restore session)
+                try {
+                    const response = await fetch('/api/auto-login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId })
+                    });
 
-                            const data = await response.json();
+                    const data = await response.json();
 
-                            if (data.status === 'OK') {
-                                window.location.href = "/dashboard";
-                            } else {
-                                // If auto-login fails (e.g. user deleted), clear bad ID
-                                await window.storageService.remove('userId');
-                            }
-                        } catch (e) {
-                            console.error("Auto-login check failed:", e);
-                        }
+                    if (data.status === 'OK') {
+                        window.location.href = "/dashboard";
+                    } else {
+                        // If auto-login fails (e.g. user deleted), clear bad ID
+                        await window.storageService.remove('userId');
                     }
-                });
-            </script>
+                } catch (e) {
+                    console.error("Auto-login check failed:", e);
+                }
+            }
+        });
+    </script>
 </body>
 
 </html>
