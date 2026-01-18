@@ -1,0 +1,31 @@
+@app.route('/api/get-user-profile', methods=['POST'])
+def get_user_profile():
+    username = request.json.get('username')
+    user = User.query.filter_by(userName=username).first()
+    if not user: return {'error': 'User not found'}, 404
+    
+    # Calculate stats
+    videos = Video.query.filter_by(user_id=user.id).all()
+    likes = sum(v.likes for v in videos)
+    views = sum(v.views for v in videos)
+    dares_count = len([v for v in videos if v.dare_id])
+    
+    user_dares = []
+    current_uid = session.get('id')
+    
+    for vid in videos:
+         if vid.dare_id:
+             user_dares.append({
+                 'dare': Dare.query.get(vid.dare_id).to_dict(),
+                 'vid': vid.to_dict(current_user_id=current_uid)
+             })
+             
+    return {
+        'id': user.id,
+        'username': user.userName,
+        'bio': user.bio if user.bio else 'N/A',
+        'likes': format_num(likes),
+        'views': format_num(views),
+        'dares': format_num(dares_count),
+        'dares_list': user_dares 
+    }
