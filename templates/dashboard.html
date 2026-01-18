@@ -850,7 +850,7 @@
         // Upload Logic
         async function handleVideoSelect(event) {
             const file = event.target.files[0];
-            if (file && file.type.startsWith('video/')) {
+            if (file && file.type && file.type.startsWith('video/')) {
                 // Show loading overlay
                 document.getElementById('uploadLoadingOverlay').classList.remove('hidden');
                 document.getElementById('uploadLoadingOverlay').classList.add('flex');
