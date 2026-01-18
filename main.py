@@ -257,6 +257,11 @@ def upload_video():
         
         if not uid:
             return {'status': 'FAIL', 'message': 'Not logged in'}, 401
+            
+        try:
+            uid = int(uid)
+        except:
+             return {'status': 'FAIL', 'message': 'Invalid ID'}, 400
         
         video = Video(
             user_id=uid,
@@ -274,6 +279,12 @@ def give_videos():
         offset = request.json.get('offset', 0)
         limit = request.json.get('limit', 5)
         uid = session.get('id') or request.json.get('user_id')
+        
+        if uid:
+            try:
+                uid = int(uid)
+            except:
+                pass # If invalid, just treat as guest/no-session (uid=None behavior) or ignore
         
         videos = get_videos(limit=limit, offset=offset)
         
@@ -294,6 +305,11 @@ def like_post():
     
     if not user_id:
         return {'error': 'Not logged in'}, 401
+    
+    try:
+        user_id = int(user_id)
+    except:
+        return {'error': 'Invalid user ID'}, 400
     
     vid_id = request.json.get('post_id')
     video = Video.query.get(vid_id)

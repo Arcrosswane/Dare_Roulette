@@ -916,12 +916,20 @@
                 // Only update if state changes
                 if (newLiked !== initialLiked) {
                     btn.textContent = newLiked ? '❤️' : '🩶';
-                    // Very simple count update for UI feeling
-                    // Note: formatNumber returns strings like "1.2K", parsing it back strictly is hard without raw value.
-                    // For now, we will trust the server response for the number, 
-                    // BUT to make it feel instant, we can try to guess.
-                    // If it's a simple number, update it. If it's "1.2K", maybe don't touch it or just toggle color.
-                    // Let's just toggle color instantly.
+
+                    // Simple optimistic count update
+                    // Only update if it's a simple integer to avoid breaking formatting
+                    if (!isNaN(initialCount) && !count.textContent.includes('K') && !count.textContent.includes('M')) {
+                        if (newLiked) initialCount++;
+                        else initialCount--;
+                        count.textContent = formatNumber(initialCount);
+                    }
+                    else if (count.textContent.includes('K') || count.textContent.includes('M')) {
+                        // For formatted numbers, we can't easily +/- 1 without parsing logic.
+                        // We'll leave the number alone until server response, just toggle the heart.
+                        // Or if you want to be fancy: remove K, add 1, verify... 
+                        // But for stability, changing color is enough for the "instant" feel.
+                    }
                 }
             }
 
