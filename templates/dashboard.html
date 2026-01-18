@@ -642,14 +642,22 @@
                     if (watchTimers[video.id] && !watchedVideos.has(video.id)) {
                         const watchedSeconds = Math.floor((Date.now() - watchTimers[video.id]) / 1000);
                         if (watchedSeconds >= 3) {
-                            onVideoWatched(video.id, watchedSeconds);
+                            // Extract DB ID from DOM ID (video-{dbId}-{uniqueId})
+                            const match = video.id.match(/video-(\d+)-/);
+                            if (match && match[1]) {
+                                onVideoWatched(match[1], watchedSeconds);
+                            }
                             watchedVideos.add(video.id);
                         }
                     }
                 });
 
                 video.addEventListener('timeupdate', () => {
-                    const progressBar = document.getElementById(`progress-${video.id}`);
+                    // PROGRESS BAR FIX: Reconstruct ID manually
+                    // video.id is like video-5-xyz123
+                    // progress id is progress-5-xyz123
+                    const progressId = video.id.replace('video-', 'progress-');
+                    const progressBar = document.getElementById(progressId);
                     if (progressBar) {
                         const percent = (video.currentTime / video.duration) * 100;
                         progressBar.style.width = `${percent}%`;
@@ -709,28 +717,37 @@
             videos.forEach((item) => {
                 if (!item.video || !item.user || !item.dare) return;
 
-                const videoId = `video-${item.video.id}`;
-                const clickAreaId = `click-${item.video.id}`;
+                // Generate a unique suffix for DOM IDs to handle duplicate videos in feed
+                const uniqueId = Math.random().toString(36).substr(2, 9);
+
+                const dbId = item.video.id;
+                const domVideoId = `video-${dbId}-${uniqueId}`;
+                const domClickId = `click-${dbId}-${uniqueId}`;
+                const domHeartId = `heart-${dbId}-${uniqueId}`;
+                const domPlayIconId = `play-icon-${dbId}-${uniqueId}`;
+                const domLikeBtnId = `likebtn-${dbId}-${uniqueId}`;
+                const domLikesCountId = `likes-${dbId}-${uniqueId}`;
+                const domProgressId = `progress-${dbId}-${uniqueId}`;
 
                 const videoHTML = `
             <div class="video-item h-[100vh] snap-item relative flex items-center justify-center bg-black">
-                <div id="${clickAreaId}" onclick="handleVideoClick('${videoId}')" class="absolute inset-0 bg-transparent z-10 cursor-pointer flex items-center justify-center">
+                <div id="${domClickId}" onclick="handleVideoClick('${domVideoId}', ${dbId}, '${uniqueId}')" class="absolute inset-0 bg-transparent z-10 cursor-pointer flex items-center justify-center">
                     <!-- Heart Animation Overlay -->
-                    <div id="heart-${videoId}" class="hidden text-8xl transition-transform select-none pointer-events-none drop-shadow-lg">❤️</div>
+                    <div id="${domHeartId}" class="hidden text-8xl transition-transform select-none pointer-events-none drop-shadow-lg">❤️</div>
                     <!-- Play/Pause Icon Overlay -->
-                    <div id="play-icon-${videoId}" class="hidden text-6xl text-white/80 transition-opacity select-none pointer-events-none bg-black/40 rounded-full p-4">▶️</div>
+                    <div id="${domPlayIconId}" class="hidden text-6xl text-white/80 transition-opacity select-none pointer-events-none bg-black/40 rounded-full p-4">▶️</div>
                 </div>
 
                 <!-- Progress Bar -->
                 <div class="absolute bottom-0 left-0 right-0 h-1 bg-white/20 z-30">
-                    <div id="progress-${videoId}" class="h-full bg-red-600 w-0 transition-all duration-100 ease-linear"></div>
+                    <div id="${domProgressId}" class="h-full bg-red-600 w-0 transition-all duration-100 ease-linear"></div>
                 </div>
 
                 ${item.video.video_url ? `
                     <video
                         src="${item.video.video_url}"
                         class="short-video absolute inset-0 w-full h-full object-contain bg-black"
-                        id="${videoId}"
+                        id="${domVideoId}"
                         muted
                         loop
                         playsinline
@@ -767,11 +784,11 @@
                         </div>
 
                         <div class="flex flex-col items-center gap-6 pb-2 pointer-events-auto">
-                            <button onclick="likePost(${item.video.id})" class="flex flex-col items-center gap-1 transform active:scale-110 transition-transform">
-                                <span id="likebtn-${item.video.id}" class="text-3xl">
+                            <button onclick="likePost(${dbId}, '${uniqueId}')" class="flex flex-col items-center gap-1 transform active:scale-110 transition-transform">
+                                <span id="${domLikeBtnId}" class="text-3xl">
                                     ${item.video.liked ? '❤️' : '🩶'}
                                 </span>
-                                <span class="text-sm font-bold" id="likes-${item.video.id}">${formatNumber(item.video.likes)}</span>
+                                <span class="text-sm font-bold" id="${domLikesCountId}">${formatNumber(item.video.likes)}</span>
                             </button>
                             <button class="flex flex-col items-center gap-1 transform active:scale-110 transition-transform">
                                 <span class="text-3xl">🔄</span>
@@ -789,34 +806,38 @@
             // Setup observers for new videos
             // Setup observers for new videos
             videos.forEach((item) => {
-                const video = document.getElementById(`video-${item.video.id}`);
-                if (video) {
-                    videoObserver.observe(video);
-                }
+                // We need to find the just-created elements. 
+                // Since we generate random IDs, we can't easily query them unless we query ALL videos 
+                // or rely on the querySelectorAll in observeNewVideos?
+                // Wait, random IDs are lost to scope. 
+                // Better: Use querySelectorAll on the CONTAINER or query all unobserved videos.
             });
+
+            // Re-run observation on all unobserved videos
+            observeNewVideos();
 
             setupVideoTracking();
         }
 
-        function handleVideoClick(videoId) {
+        function handleVideoClick(domVideoId, dbId, uniqueId) {
             const now = Date.now();
             const timeDiff = now - lastClickTime;
 
             if (timeDiff < 300) {
                 // Double Tap
                 clearTimeout(clickTimer);
-                handleDoubleTap(videoId);
+                handleDoubleTap(domVideoId, dbId, uniqueId);
             } else {
                 // Single Tap (Wait to see if it becomes double)
                 clickTimer = setTimeout(() => {
-                    togglePlay(videoId);
+                    togglePlay(domVideoId, uniqueId);
                 }, 300);
             }
             lastClickTime = now;
         }
 
-        function handleDoubleTap(videoId) {
-            const heart = document.getElementById(`heart-${videoId}`);
+        function handleDoubleTap(domVideoId, dbId, uniqueId) {
+            const heart = document.getElementById(`heart-${dbId}-${uniqueId}`);
             if (heart) {
                 heart.classList.remove('hidden');
                 heart.classList.add('animate-heart-pop');
@@ -825,13 +846,23 @@
                     heart.classList.add('hidden');
                 }, 1000);
             }
-            likePost(videoId, true); // Force like
+            likePost(dbId, uniqueId, true); // Force like
         }
 
-        function togglePlay(videoId) {
+        function togglePlay(domVideoId, uniqueId) {
             userInteracted = true;
-            const video = document.getElementById(videoId);
-            const playIcon = document.getElementById(`play-icon-${videoId}`);
+            const video = document.getElementById(domVideoId);
+            // Derive play icon ID using dbId is hard if we only pass domVideoId.
+            // But we passed uniqueId!
+            // Wait, domVideoId looks like `video-${dbId}-${uniqueId}`
+            // So we can reconstruct other IDs or just pass unique ID.
+
+            // Re-extract DB ID from DOM ID if needed, or better, pass uniqueId.
+            // Let's assume we can find the play icon relative to the video or via ID pattern.
+            // domVideoId: video-5-xyz123
+            // Play Icon: play-icon-5-xyz123
+            const playIconId = domVideoId.replace('video-', 'play-icon-');
+            const playIcon = document.getElementById(playIconId);
 
             if (!video) return;
 
@@ -860,13 +891,17 @@
             }
         }
 
-        async function likePost(videoId, forceLike = false) {
+        async function likePost(dbId, uniqueId, forceLike = false) {
             const userId = await window.storageService.get('userId');
+
+            // Optimistic UI Update (optional, but good for responsiveness)
+            // But let's wait for server response to be safe.
+
             fetch('/api/like', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    post_id: videoId,
+                    post_id: dbId,
                     user_id: userId,
                     force_like: forceLike
                 })
@@ -875,11 +910,11 @@
                 .then(data => {
                     if (data.error) return;
 
-                    document.getElementById(`likebtn-${videoId}`).textContent =
-                        data.liked ? '❤️' : '🩶';
+                    const btn = document.getElementById(`likebtn-${dbId}-${uniqueId}`);
+                    const count = document.getElementById(`likes-${dbId}-${uniqueId}`);
 
-                    document.getElementById(`likes-${videoId}`).textContent =
-                        formatNumber(data.likes);
+                    if (btn) btn.textContent = data.liked ? '❤️' : '🩶';
+                    if (count) count.textContent = formatNumber(data.likes);
                 })
                 .catch(console.error);
         }
