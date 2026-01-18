@@ -355,269 +355,40 @@
                         class="w-10 h-10 lg:w-12 lg:h-12 glassmorphism rounded-full flex items-center justify-center hover:bg-white/10 active:bg-white/10 transition text-lg lg:text-xl">📷</button>
                 </div>
             </div>
+            </section>
 
-            <div class="text-center mt-6 lg:mt-8 text-gray-500 text-xs lg:text-sm">
-                </section>
+            <script src="/static/storage.js"></script>
+            <script>
+                function scrollToApp() {
+                    document.getElementById('app-section').scrollIntoView({ behavior: 'smooth' });
+                }
 
-                <!-- Features Section -->
-                <section class="py-16 lg:py-20 px-4">
-                    <div class="max-w-sm lg:max-w-6xl mx-auto">
-                        <h2
-                            class="text-3xl lg:text-5xl font-bold text-center mb-10 lg:mb-16 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                            How It Works
-                        </h2>
+                document.addEventListener("DOMContentLoaded", async () => {
+                    const userId = await window.storageService.get('userId');
 
-                        <div class="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-8">
-                            <!-- Feature 1 -->
-                            <div
-                                class="glassmorphism rounded-2xl lg:rounded-3xl p-6 lg:p-8 border border-white/10 hover:border-purple-500/50 transform active:scale-95 lg:hover:scale-105 transition-all">
-                                <div class="flex lg:flex-col items-start lg:items-start gap-4 lg:gap-0">
-                                    <div class="text-5xl lg:text-6xl lg:mb-6">🎡</div>
-                                    <div class="flex-1">
-                                        <h3 class="text-xl lg:text-2xl font-bold mb-2 lg:mb-4">Spin The Wheel</h3>
-                                        <p class="text-sm lg:text-base text-gray-400 leading-relaxed">
-                                            Hit the wheel and let fate decide your next challenge. From funny to
-                                            fitness, every spin is a surprise!
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+                    if (userId) {
+                        // Attempt to auto-login (restore session)
+                        try {
+                            const response = await fetch('/api/auto-login', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ user_id: userId })
+                            });
 
-                            <!-- Feature 2 -->
-                            <div
-                                class="glassmorphism rounded-2xl lg:rounded-3xl p-6 lg:p-8 border border-white/10 hover:border-pink-500/50 transform active:scale-95 lg:hover:scale-105 transition-all">
-                                <div class="flex lg:flex-col items-start lg:items-start gap-4 lg:gap-0">
-                                    <div class="text-5xl lg:text-6xl lg:mb-6">📹</div>
-                                    <div class="flex-1">
-                                        <h3 class="text-xl lg:text-2xl font-bold mb-2 lg:mb-4">Record Your Dare</h3>
-                                        <p class="text-sm lg:text-base text-gray-400 leading-relaxed">
-                                            Complete the challenge and upload your video. Show the world what you’re
-                                            made of!
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+                            const data = await response.json();
 
-                            <!-- Feature 3 -->
-                            <div
-                                class="glassmorphism rounded-2xl lg:rounded-3xl p-6 lg:p-8 border border-white/10 hover:border-purple-500/50 transform active:scale-95 lg:hover:scale-105 transition-all">
-                                <div class="flex lg:flex-col items-start lg:items-start gap-4 lg:gap-0">
-                                    <div class="text-5xl lg:text-6xl lg:mb-6">🔥</div>
-                                    <div class="flex-1">
-                                        <h3 class="text-xl lg:text-2xl font-bold mb-2 lg:mb-4">Share & Go Viral</h3>
-                                        <p class="text-sm lg:text-base text-gray-400 leading-relaxed">
-                                            Your dare goes live on the feed. Get likes, views, and inspire others to
-                                            take on challenges!
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Challenge Categories -->
-                <section class="py-16 lg:py-20 px-4 bg-gradient-to-b from-transparent via-purple-950/20 to-transparent">
-                    <div class="max-w-sm lg:max-w-6xl mx-auto">
-                        <h2
-                            class="text-3xl lg:text-5xl font-bold text-center mb-10 lg:mb-16 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                            Challenge Categories
-                        </h2>
-
-                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-                            <div
-                                class="glassmorphism rounded-xl lg:rounded-2xl p-5 lg:p-6 text-center hover:bg-white/10 active:bg-white/10 transition-all cursor-pointer">
-                                <div class="text-4xl lg:text-5xl mb-2 lg:mb-3">💪</div>
-                                <div class="font-semibold text-sm lg:text-base">Fitness</div>
-                            </div>
-                            <div
-                                class="glassmorphism rounded-xl lg:rounded-2xl p-5 lg:p-6 text-center hover:bg-white/10 active:bg-white/10 transition-all cursor-pointer">
-                                <div class="text-4xl lg:text-5xl mb-2 lg:mb-3">🎤</div>
-                                <div class="font-semibold text-sm lg:text-base">Music</div>
-                            </div>
-                            <div
-                                class="glassmorphism rounded-xl lg:rounded-2xl p-5 lg:p-6 text-center hover:bg-white/10 active:bg-white/10 transition-all cursor-pointer">
-                                <div class="text-4xl lg:text-5xl mb-2 lg:mb-3">💃</div>
-                                <div class="font-semibold text-sm lg:text-base">Dance</div>
-                            </div>
-                            <div
-                                class="glassmorphism rounded-xl lg:rounded-2xl p-5 lg:p-6 text-center hover:bg-white/10 active:bg-white/10 transition-all cursor-pointer">
-                                <div class="text-4xl lg:text-5xl mb-2 lg:mb-3">😂</div>
-                                <div class="font-semibold text-sm lg:text-base">Comedy</div>
-                            </div>
-                            <div
-                                class="glassmorphism rounded-xl lg:rounded-2xl p-5 lg:p-6 text-center hover:bg-white/10 active:bg-white/10 transition-all cursor-pointer">
-                                <div class="text-4xl lg:text-5xl mb-2 lg:mb-3">🎭</div>
-                                <div class="font-semibold text-sm lg:text-base">Acting</div>
-                            </div>
-                            <div
-                                class="glassmorphism rounded-xl lg:rounded-2xl p-5 lg:p-6 text-center hover:bg-white/10 active:bg-white/10 transition-all cursor-pointer">
-                                <div class="text-4xl lg:text-5xl mb-2 lg:mb-3">⭐</div>
-                                <div class="font-semibold text-sm lg:text-base">Talents</div>
-                            </div>
-                            <div
-                                class="glassmorphism rounded-xl lg:rounded-2xl p-5 lg:p-6 text-center hover:bg-white/10 active:bg-white/10 transition-all cursor-pointer">
-                                <div class="text-4xl lg:text-5xl mb-2 lg:mb-3">🤪</div>
-                                <div class="font-semibold text-sm lg:text-base">Crazy</div>
-                            </div>
-                            <div
-                                class="glassmorphism rounded-xl lg:rounded-2xl p-5 lg:p-6 text-center hover:bg-white/10 active:bg-white/10 transition-all cursor-pointer">
-                                <div class="text-4xl lg:text-5xl mb-2 lg:mb-3">🎯</div>
-                                <div class="font-semibold text-sm lg:text-base">Random</div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Testimonials -->
-                <section class="py-16 lg:py-20 px-4">
-                    <div class="max-w-sm lg:max-w-6xl mx-auto">
-                        <h2
-                            class="text-3xl lg:text-5xl font-bold text-center mb-10 lg:mb-16 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                            What People Are Saying
-                        </h2>
-
-                        <div class="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-8">
-                            <div class="glassmorphism rounded-2xl lg:rounded-3xl p-5 lg:p-8 border border-white/10">
-                                <div class="flex items-center gap-3 mb-3 lg:mb-4">
-                                    <div
-                                        class="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center font-bold text-lg lg:text-xl">
-                                        A
-                                    </div>
-                                    <div>
-                                        <div class="font-semibold text-sm lg:text-base">Alex Chen</div>
-                                        <div class="text-xs lg:text-sm text-gray-400">@alexc</div>
-                                    </div>
-                                </div>
-                                <p class="text-sm lg:text-base text-gray-300 leading-relaxed mb-2 lg:mb-4">
-                                    "This app pushed me out of my comfort zone! Completed 50 dares and gained so much
-                                    confidence. Absolutely addictive! 🔥"
-                                </p>
-                                <div class="text-yellow-400 text-sm lg:text-base">⭐⭐⭐⭐⭐</div>
-                            </div>
-
-                            <div class="glassmorphism rounded-2xl lg:rounded-3xl p-5 lg:p-8 border border-white/10">
-                                <div class="flex items-center gap-3 mb-3 lg:mb-4">
-                                    <div
-                                        class="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center font-bold text-lg lg:text-xl">
-                                        S
-                                    </div>
-                                    <div>
-                                        <div class="font-semibold text-sm lg:text-base">Sarah Johnson</div>
-                                        <div class="text-xs lg:text-sm text-gray-400">@sarahj</div>
-                                    </div>
-                                </div>
-                                <p class="text-sm lg:text-base text-gray-300 leading-relaxed mb-2 lg:mb-4">
-                                    "Best thing ever! My dare video got 100K views in a day. The community here is
-                                    amazing and super supportive! 💜"
-                                </p>
-                                <div class="text-yellow-400 text-sm lg:text-base">⭐⭐⭐⭐⭐</div>
-                            </div>
-
-                            <div class="glassmorphism rounded-2xl lg:rounded-3xl p-5 lg:p-8 border border-white/10">
-                                <div class="flex items-center gap-3 mb-3 lg:mb-4">
-                                    <div
-                                        class="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center font-bold text-lg lg:text-xl">
-                                        M
-                                    </div>
-                                    <div>
-                                        <div class="font-semibold text-sm lg:text-base">Marcus Lee</div>
-                                        <div class="text-xs lg:text-sm text-gray-400">@marcusl</div>
-                                    </div>
-                                </div>
-                                <p class="text-sm lg:text-base text-gray-300 leading-relaxed mb-2 lg:mb-4">
-                                    "So much fun! Every dare is unique and exciting. Can’t stop spinning that wheel. My
-                                    friends are all obsessed now! 😂"
-                                </p>
-                                <div class="text-yellow-400 text-sm lg:text-base">⭐⭐⭐⭐⭐</div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- CTA Section -->
-                <section class="py-20 lg:py-32 px-4" id="app-section">
-                    <div class="max-w-sm lg:max-w-4xl mx-auto text-center">
-                        <div class="text-6xl lg:text-7xl mb-6 lg:mb-8">🚀</div>
-                        <h2
-                            class="text-4xl lg:text-6xl font-bold mb-4 lg:mb-6 bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent gradient-animate leading-tight">
-                            Ready to Take The Challenge?
-                        </h2>
-                        <p class="text-base lg:text-xl text-gray-300 mb-8 lg:mb-12 px-4">
-                            Join thousands of brave souls pushing their limits every day.
-                        </p>
-                        <a href="/signup"
-                            class="inline-block px-10 lg:px-12 py-5 lg:py-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-full font-bold text-xl lg:text-2xl transition-all duration-300 transform active:scale-95 hover:scale-110 shadow-2xl shadow-purple-500/50 pulse-glow">
-                            Launch App Now 🎯
-                        </a>
-                    </div>
-                </section>
-
-                <!-- Footer -->
-                <footer class="border-t border-white/10 py-8 lg:py-12 px-4">
-                    <div class="max-w-sm lg:max-w-6xl mx-auto">
-                        <div class="flex flex-col lg:flex-row justify-between items-center gap-6">
-                            <div class="flex items-center gap-2">
-                                <span class="text-2xl lg:text-3xl">🎯</span>
-                                <span
-                                    class="text-lg lg:text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Dare-Roulette</span>
-                            </div>
-
-                            <div class="flex gap-6 text-gray-400 text-sm lg:text-base">
-                                <a href="#" class="hover:text-white active:text-white transition">About</a>
-                                <a href="#" class="hover:text-white active:text-white transition">Privacy</a>
-                                <a href="#" class="hover:text-white active:text-white transition">Terms</a>
-                                <a href="#" class="hover:text-white active:text-white transition">Contact</a>
-                            </div>
-
-                            <div class="flex gap-4">
-                                <button
-                                    class="w-10 h-10 lg:w-12 lg:h-12 glassmorphism rounded-full flex items-center justify-center hover:bg-white/10 active:bg-white/10 transition text-lg lg:text-xl">📱</button>
-                                <button
-                                    class="w-10 h-10 lg:w-12 lg:h-12 glassmorphism rounded-full flex items-center justify-center hover:bg-white/10 active:bg-white/10 transition text-lg lg:text-xl">🐦</button>
-                                <button
-                                    class="w-10 h-10 lg:w-12 lg:h-12 glassmorphism rounded-full flex items-center justify-center hover:bg-white/10 active:bg-white/10 transition text-lg lg:text-xl">📷</button>
-                            </div>
-                        </div>
-
-                        <div class="text-center mt-6 lg:mt-8 text-gray-500 text-xs lg:text-sm">
-                            © 2026 Dare-Roulette. All rights reserved. Challenge yourself responsibly.
-                        </div>
-                    </div>
-                </footer>
-
-                <script src="/static/storage.js"></script>
-                <script>
-                    function scrollToApp() {
-                        document.getElementById('app-section').scrollIntoView({ behavior: 'smooth' });
-                    }
-
-                    document.addEventListener("DOMContentLoaded", async () => {
-                        const userId = await window.storageService.get('userId');
-
-                        if (userId) {
-                            // Attempt to auto-login (restore session)
-                            try {
-                                const response = await fetch('/api/auto-login', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ user_id: userId })
-                                });
-
-                                const data = await response.json();
-
-                                if (data.status === 'OK') {
-                                    window.location.href = "/dashboard";
-                                } else {
-                                    // If auto-login fails (e.g. user deleted), clear bad ID
-                                    await window.storageService.remove('userId');
-                                }
-                            } catch (e) {
-                                console.error("Auto-login check failed:", e);
+                            if (data.status === 'OK') {
+                                window.location.href = "/dashboard";
+                            } else {
+                                // If auto-login fails (e.g. user deleted), clear bad ID
+                                await window.storageService.remove('userId');
                             }
+                        } catch (e) {
+                            console.error("Auto-login check failed:", e);
                         }
-                    });
-                </script>
+                    }
+                });
+            </script>
 </body>
 
 </html>
