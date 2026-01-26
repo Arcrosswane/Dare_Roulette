@@ -467,8 +467,14 @@ def init_db():
 def delete_account():
     return 'deleted account!'
 
+
+@app.route('/safety')
+def safety():
+    return 'Safety link'
+
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
