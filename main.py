@@ -463,9 +463,13 @@ def init_db():
     db.create_all()
     return "DB Initialized!"
 
+@app.route('/delete-account')
+def delete_account():
+    return "deleted account!'
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
