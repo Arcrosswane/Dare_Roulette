@@ -465,10 +465,11 @@ def init_db():
 
 @app.route('/delete-account')
 def delete_account():
-    return "deleted account!'
+    return 'deleted account!'
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
