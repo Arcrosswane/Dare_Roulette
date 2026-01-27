@@ -463,14 +463,38 @@ def init_db():
     db.create_all()
     return "DB Initialized!"
 
-@app.route('/delete-account')
+@app.route('/delete-account', methods=['POST'])
 def delete_account():
-    return 'deleted account!'
+    if request.method == 'POST':
+        # Validate that a user is logged in
+        user_id = session.get('id')
+        if not user_id:
+            return {'status': 'FAIL', 'message': 'Not logged in'}, 401
+
+        # Ensure user_id is a valid integer
+        try:
+            user_id = int(user_id)
+        except:
+            return {'status': 'FAIL', 'message': 'Invalid user ID'}, 400
+
+        # Fetch the actual user instance
+        user = User.query.filter_by(id=user_id).first()
+        if not user:
+            return {'status': 'FAIL', 'message': 'User not found'}, 404
+
+        db.session.delete(user)
+        db.session.commit()
+        session.clear()
+        return {'status': 'OK'}
 
 
-@app.route('/safety')
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
+@app.route("/safety")
 def safety():
-    return 'Safety link'
+    return render_template("safety.html")
 
 if __name__ == "__main__":
     app.run(debug=True)

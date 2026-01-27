@@ -530,6 +530,15 @@
         </div>
     </main>
     <script src="/static/storage.js"></script>
+    <script src="https://unpkg.com/pulltorefreshjs@0.1.22/dist/index.umd.js"></script>
+    <script>
+        PullToRefresh.init({
+            mainElement: 'body',
+            onRefresh() {
+                window.location.reload();
+            }
+        });
+    </script>
     <script>
         // Replace the entire <script> section in your HTML with this:
 
@@ -548,6 +557,7 @@
         let scrollObserver = null;
         let clickTimer = null;
         let lastClickTime = 0;
+
 
         const CLOUD_NAME = "dsfn0sc3w";
         const UPLOAD_PRESET = "Dare-Roulette";
@@ -1323,7 +1333,26 @@
             return `${years}y ago`;
         }
 
-        // function delete_account()
+        function delete_account() {
+            fetch('/delete-account', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(res => res.json())
+                .then(response => {
+                    if (response.status == 'OK') {
+                        window.location.href = '/signup';
+                    } else {
+                        alert('Failed to delete account.');
+                    }
+                })
+                .catch(error => {
+                    alert('Error deleting account.');
+                    console.error(error);
+                });
+        }
 
         // Initialize
         window.onload = () => {
