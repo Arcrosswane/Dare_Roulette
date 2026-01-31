@@ -463,7 +463,7 @@ def init_db():
     db.create_all()
     return "DB Initialized!"
 
-@app.route('/delete-account', methods=['POST'])
+@app.route('/delete-account', methods=['GET', 'POST'])
 def delete_account():
     if request.method == 'POST':
         # Validate that a user is logged in
@@ -487,6 +487,8 @@ def delete_account():
         session.clear()
         return {'status': 'OK'}
 
+    return "Please delete the account from your account dashboard"
+
 
 @app.route("/privacy")
 def privacy():
@@ -498,6 +500,7 @@ def safety():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
